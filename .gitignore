@@ -1,4 +1,5 @@
 .venv/
+pyproject.toml
 poetry.lock
 .env
 .streamlit/secrets.toml
