@@ -1,0 +1,109 @@
+generator client {
+  provider  = "prisma-client-py"
+  interface = "sync"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = ""
+}
+
+model Period {
+  id             Int           @id
+  gametime       Float
+  scoreRed       Int
+  scoreBlue      Int
+  possessionRed  Int
+  possessionBlue Int
+  actionZoneRed  Int
+  actionZoneBlue Int
+  PlayerStats    PlayerStats[]
+  LeagueMatch    LeagueMatch?  @relation(fields: [leagueMatchId], references: [id])
+  leagueMatchId  Int?
+}
+
+model Player {
+  auth  String        @id
+  conn  String
+  name  String        @unique
+  stats PlayerStats[]
+}
+
+model PlayerStats {
+  id                String @id @default(cuid())
+  period            Period @relation(fields: [periodId], references: [id])
+  periodId          Int
+  player            Player @relation(fields: [playerAuth], references: [auth])
+  playerAuth        String
+  gametime          Float
+  goals             Int
+  ownGoals          Int
+  assists           Int
+  shots             Int
+  shotsTarget       Int
+  saves             Int
+  touches           Int
+  kicks             Int
+  interceptions     Int
+  clears            Int
+  duels             Int
+  reboundDribbles   Int
+  passesAttempted   Int
+  passesSuccessful  Int
+  goalsScoredTeam   Int
+  goalsConcededTeam Int
+  averagePosX       Float
+  averagePosY       Float
+}
+
+model LeagueDivision {
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  LeagueTeam LeagueTeam[]
+}
+
+model LeagueTeam {
+  id                Int                 @id @default(autoincrement())
+  division          LeagueDivision      @relation(fields: [leagueDivisionId], references: [id])
+  leagueDivisionId  Int
+  name              String              @unique
+  LeaguePlayerTeams LeaguePlayerTeams[]
+  LeagueMatchDetail LeagueMatchDetail[]
+}
+
+model LeaguePlayer {
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  nicks             String[]
+  LeaguePlayerTeams LeaguePlayerTeams[]
+}
+
+model LeaguePlayerTeams {
+  player         LeaguePlayer @relation(fields: [leaguePlayerId], references: [id])
+  leaguePlayerId Int
+  team           LeagueTeam   @relation(fields: [leagueTeamId], references: [id])
+  leagueTeamId   Int
+  active         Boolean
+
+  @@id([leaguePlayerId, leagueTeamId])
+}
+
+model LeagueMatch {
+  id                Int                 @id @default(autoincrement())
+  date              DateTime
+  division          Int
+  matchday          Int
+  periods           Period[]
+  defwin            Int
+  LeagueMatchDetail LeagueMatchDetail[]
+}
+
+model LeagueMatchDetail {
+  match         LeagueMatch @relation(fields: [leagueMatchId], references: [id])
+  leagueMatchId Int
+  team          LeagueTeam  @relation(fields: [leagueTeamId], references: [id])
+  leagueTeamId  Int
+  startsRed     Boolean
+
+  @@id([leagueMatchId, leagueTeamId])
+}
