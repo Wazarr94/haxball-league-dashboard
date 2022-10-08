@@ -1,12 +1,14 @@
-# streamlit_app.py
-
 import streamlit as st
 from prisma import Prisma
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 @st.experimental_singleton
 def init_connection():
-    url = st.secrets["DATABASE_URL"]
+    url = os.environ["DATABASE_URL"]
     db = Prisma(
         datasource={
             "url": url,
