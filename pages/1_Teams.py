@@ -56,11 +56,23 @@ def main():
         former_players = [p.player for p in team_obj.LeaguePlayerTeams if not p.active]
         st.write(f"## {team_obj.name}")
         st.write(f"**Active players ({len(active_players)}/12):**")
-        for player in active_players:
-            st.write(f"- {player.name}")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            for player in active_players[::2]:
+                st.write(f"- {player.name}")
+        with col2:
+            for player in active_players[1::2]:
+                st.write(f"- {player.name}")
+
         st.write(f"**Former players:**")
-        for player in former_players:
-            st.write(f"- {player.name}")
+        col1, col2 = st.columns(2)
+        with col1:
+            for player in former_players[::2]:
+                st.write(f"- {player.name}")
+        with col2:
+            for player in former_players[1::2]:
+                st.write(f"- {player.name}")
 
 
 if __name__ == "__main__":

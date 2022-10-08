@@ -23,9 +23,10 @@ model Period {
 }
 
 model Player {
-  auth  String        @id
+  id    String        @id @default(cuid())
+  auth  String
   conn  String
-  name  String        @unique
+  name  String
   stats PlayerStats[]
 }
 
@@ -33,8 +34,8 @@ model PlayerStats {
   id                String @id @default(cuid())
   period            Period @relation(fields: [periodId], references: [id])
   periodId          Int
-  player            Player @relation(fields: [playerAuth], references: [auth])
-  playerAuth        String
+  Player            Player @relation(fields: [playerId], references: [id])
+  playerId          String
   gametime          Float
   goals             Int
   ownGoals          Int
@@ -57,9 +58,10 @@ model PlayerStats {
 }
 
 model LeagueDivision {
-  id         Int          @id @default(autoincrement())
-  name       String       @unique
-  LeagueTeam LeagueTeam[]
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  LeagueTeam    LeagueTeam[]
+  LeagueMatches LeagueMatch[]
 }
 
 model LeagueTeam {
@@ -91,8 +93,10 @@ model LeaguePlayerTeams {
 model LeagueMatch {
   id                Int                 @id @default(autoincrement())
   date              DateTime
-  division          Int
   matchday          Int
+  title             String
+  LeagueDivision    LeagueDivision      @relation(fields: [leagueDivisionId], references: [id])
+  leagueDivisionId  Int
   periods           Period[]
   defwin            Int
   LeagueMatchDetail LeagueMatchDetail[]
