@@ -3,7 +3,11 @@ from prisma import Prisma
 from dotenv import load_dotenv
 import os
 
+from utils.utils import hide_streamlit_elements
+
 load_dotenv()
+
+hide_streamlit_elements()
 
 
 @st.experimental_singleton

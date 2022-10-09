@@ -6,6 +6,10 @@ from prisma.models import LeagueMatch
 from st_aggrid import AgGrid, AgGridTheme
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 
+from utils.utils import hide_streamlit_elements
+
+hide_streamlit_elements()
+
 
 @st.experimental_memo(ttl=600)
 def get_matches(_db: Prisma):

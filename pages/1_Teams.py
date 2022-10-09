@@ -3,6 +3,10 @@
 import streamlit as st
 from prisma import Prisma
 
+from utils.utils import hide_streamlit_elements
+
+hide_streamlit_elements()
+
 
 @st.experimental_memo(ttl=600)
 def get_teams(_db: Prisma):

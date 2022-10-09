@@ -3,3 +3,5 @@ pyproject.toml
 poetry.lock
 .env
 .streamlit/*
+
+__pycache__/
