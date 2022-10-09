@@ -2,4 +2,4 @@
 pyproject.toml
 poetry.lock
 .env
-.streamlit/secrets.toml
+.streamlit/*

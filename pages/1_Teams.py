@@ -37,9 +37,8 @@ def main():
 
     col1, col2 = st.columns([4, 8])
     with col1:
-        div_select = st.multiselect(
+        div_select = st.selectbox(
             "Division",
-            [d.name for d in divisions_list],
             [d.name for d in divisions_list],
         )
     with col2:
