@@ -19,14 +19,17 @@ def get_matches(_db: Prisma):
                 }
             },
             "periods": True,
-        }
+        },
+        order={"id": "asc"},
     )
     return matches
 
 
 @st.experimental_memo(ttl=600)
 def get_divisions(_db: Prisma):
-    divisions = _db.leaguedivision.find_many()
+    divisions = _db.leaguedivision.find_many(
+        order={"id": "asc"},
+    )
     return divisions
 
 
@@ -40,14 +43,17 @@ def get_teams(_db: Prisma):
                     "player": True,
                 }
             },
-        }
+        },
+        order={"id": "asc"},
     )
     return teams
 
 
 @st.experimental_memo(ttl=600)
 def get_periods(_db: Prisma):
-    periods = _db.period.find_many()
+    periods = _db.period.find_many(
+        order={"id": "asc"},
+    )
     return periods
 
 
@@ -210,7 +216,7 @@ def main():
     match_to_edit_title = st.selectbox("Match", [m.title for m in match_list_filter])
     match_to_edit = [m for m in match_list_filter if m.title == match_to_edit_title][0]
 
-    with st.form(key="detail_form"):
+    with st.container():
         st.write("### General")
         first_team_starts = radio_team_starts(match_to_edit)
         defwin = radio_defwin(match_to_edit)
@@ -249,7 +255,7 @@ def main():
             can_submit = False
             st.error("Period 3 id invalid!")
 
-        submitted = st.form_submit_button()
+        submitted = st.button("Submit")
         if submitted:
             if not can_submit:
                 st.error("Error: Fix the periods id")

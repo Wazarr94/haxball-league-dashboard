@@ -22,14 +22,17 @@ def get_matches(_db: Prisma):
                 }
             },
             "periods": True,
-        }
+        },
+        order={"id": "asc"},
     )
     return matches
 
 
 @st.experimental_memo(ttl=600)
 def get_divisions(_db: Prisma):
-    divisions = _db.leaguedivision.find_many()
+    divisions = _db.leaguedivision.find_many(
+        order={"id": "asc"},
+    )
     return divisions
 
 
@@ -43,7 +46,8 @@ def get_teams(_db: Prisma):
                     "player": True,
                 }
             },
-        }
+        },
+        order={"id": "asc"},
     )
     return teams
 
@@ -68,8 +72,7 @@ def get_score(match: LeagueMatch):
 
 def build_match_db(match_list: list[LeagueMatch]):
     object_list = []
-    match_list_sorted = sorted(match_list, key=lambda x: x.id)
-    for m in match_list_sorted:
+    for m in match_list:
         score1, score2 = get_score(m)
         score = f"{score1}-{score2}"
         if score1 == -1:

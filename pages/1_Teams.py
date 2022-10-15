@@ -18,14 +18,17 @@ def get_teams(_db: Prisma):
                     "player": True,
                 }
             },
-        }
+        },
+        order={"id": "asc"},
     )
     return teams
 
 
 @st.experimental_memo(ttl=600)
 def get_divisions(_db: Prisma):
-    divisions = _db.leaguedivision.find_many()
+    divisions = _db.leaguedivision.find_many(
+        order={"id": "asc"},
+    )
     return divisions
 
 
