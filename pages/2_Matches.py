@@ -68,7 +68,8 @@ def get_score(match: LeagueMatch):
 
 def build_match_db(match_list: list[LeagueMatch]):
     object_list = []
-    for m in match_list:
+    match_list_sorted = sorted(match_list, key=lambda x: x.id)
+    for m in match_list_sorted:
         score1, score2 = get_score(m)
         score = f"{score1}-{score2}"
         if score1 == -1:
@@ -83,7 +84,6 @@ def build_match_db(match_list: list[LeagueMatch]):
         }
         object_list.append(obj)
     object_df = pd.DataFrame([dict(s) for s in object_list])
-    object_df = object_df.sort_values(by=["matchday", "date"])
     return object_df
 
 
