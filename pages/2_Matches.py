@@ -49,6 +49,8 @@ def get_teams(_db: Prisma):
 
 
 def get_score(match: LeagueMatch):
+    if match.defwin != 0:
+        return (5, 0) if match.defwin == 1 else (0, 5)
     if len(match.periods) == 0:
         return (-1, -1)
     md_1 = match.detail[0]
