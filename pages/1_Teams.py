@@ -13,7 +13,7 @@ def get_teams(_db: Prisma):
     teams = _db.leagueteam.find_many(
         include={
             "division": True,
-            "LeaguePlayerTeams": {
+            "players": {
                 "include": {
                     "player": True,
                 }
@@ -55,8 +55,8 @@ def main():
 
     if team_select is not None:
         team_obj = [t for t in teams_list if t.name == team_select][0]
-        active_players = [p.player for p in team_obj.LeaguePlayerTeams if p.active]
-        former_players = [p.player for p in team_obj.LeaguePlayerTeams if not p.active]
+        active_players = [p.player for p in team_obj.players if p.active]
+        former_players = [p.player for p in team_obj.players if not p.active]
         st.write(f"## {team_obj.name}")
         st.write(f"**Active players ({len(active_players)}/12):**")
 

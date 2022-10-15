@@ -16,11 +16,12 @@ def get_matches(_db: Prisma):
     matches = _db.leaguematch.find_many(
         include={
             "LeagueDivision": True,
-            "LeagueMatchDetail": {
+            "detail": {
                 "include": {
                     "team": True,
                 }
             },
+            "periods": True,
         }
     )
     return matches
@@ -37,7 +38,7 @@ def get_teams(_db: Prisma):
     teams = _db.leagueteam.find_many(
         include={
             "division": True,
-            "LeaguePlayerTeams": {
+            "players": {
                 "include": {
                     "player": True,
                 }
@@ -47,19 +48,40 @@ def get_teams(_db: Prisma):
     return teams
 
 
+def get_score(match: LeagueMatch):
+    if len(match.periods) == 0:
+        return (-1, -1)
+    md_1 = match.detail[0]
+    score_1 = sum([p.scoreRed for p in match.periods[::2]]) + sum(
+        [p.scoreBlue for p in match.periods[1::2]]
+    )
+    score_2 = sum([p.scoreBlue for p in match.periods[::2]]) + sum(
+        [p.scoreRed for p in match.periods[1::2]]
+    )
+    score = [score_1, score_2] if md_1.startsRed else [score_2, score_1]
+    score[0] += match.addRed
+    score[1] += match.addBlue
+    return tuple(score)
+
+
 def build_match_db(match_list: list[LeagueMatch]):
-    object_df = []
+    object_list = []
     for m in match_list:
+        score1, score2 = get_score(m)
+        score = f"{score1}-{score2}"
+        if score1 == -1:
+            score = ""
         obj = {
             "division": m.LeagueDivision.name,
             "matchday": m.matchday,
             "date": m.date,
-            "team1": m.LeagueMatchDetail[0].team.name,
-            "team2": m.LeagueMatchDetail[1].team.name,
-            "score": "",
+            "team1": m.detail[0].team.name,
+            "team2": m.detail[1].team.name,
+            "score": score,
         }
-        object_df.append(obj)
-    object_df = pd.DataFrame([dict(s) for s in object_df])
+        object_list.append(obj)
+    object_df = pd.DataFrame([dict(s) for s in object_list])
+    object_df = object_df.sort_values(by=["matchday", "date"])
     return object_df
 
 
@@ -139,9 +161,7 @@ def main():
             continue
         if m.LeagueDivision.name != div_name_select:
             continue
-        if team_select is None or any(
-            [md.team.name == team_select for md in m.LeagueMatchDetail]
-        ):
+        if team_select is None or any([md.team.name == team_select for md in m.detail]):
             match_list_filter.append(m)
 
     df = build_match_db(match_list_filter)

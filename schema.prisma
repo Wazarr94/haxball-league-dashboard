@@ -9,7 +9,7 @@ datasource db {
 }
 
 model Period {
-  id             Int           @id
+  id             BigInt        @id
   gametime       Float
   scoreRed       Int
   scoreBlue      Int
@@ -23,23 +23,44 @@ model Period {
 }
 
 model Player {
-  id    String        @id @default(cuid())
-  auth  String
-  conn  String
-  name  String
-  stats PlayerStats[]
+  id         String        @id @default(cuid())
+  auth       String
+  conn       String
+  name       String
+  goalDetail GoalDetail[]
+  stats      PlayerStats[]
+}
+
+model Goal {
+  id     String       @id @default(cuid())
+  time   Float
+  passes Int
+  detail GoalDetail[]
+}
+
+model GoalDetail {
+  goal     Goal    @relation(fields: [goalId], references: [id])
+  player   Player  @relation(fields: [playerId], references: [id])
+  goalId   String
+  playerId String
+  role     Int
+  own      Boolean
+
+  @@id([goalId, playerId])
 }
 
 model PlayerStats {
   id                String @id @default(cuid())
   period            Period @relation(fields: [periodId], references: [id])
-  periodId          Int
+  periodId          BigInt
   Player            Player @relation(fields: [playerId], references: [id])
   playerId          String
   gametime          Float
   goals             Int
   ownGoals          Int
   assists           Int
+  secondaryAssists  Int
+  tertiaryAssists   Int
   shots             Int
   shotsTarget       Int
   saves             Int
@@ -55,29 +76,31 @@ model PlayerStats {
   goalsConcededTeam Int
   averagePosX       Float
   averagePosY       Float
+  gamePosition      Int
 }
 
 model LeagueDivision {
-  id            Int           @id @default(autoincrement())
-  name          String        @unique
-  LeagueTeam    LeagueTeam[]
-  LeagueMatches LeagueMatch[]
+  id      Int           @id @default(autoincrement())
+  name    String        @unique
+  teams   LeagueTeam[]
+  matches LeagueMatch[]
 }
 
 model LeagueTeam {
-  id                Int                 @id @default(autoincrement())
-  division          LeagueDivision      @relation(fields: [leagueDivisionId], references: [id])
-  leagueDivisionId  Int
-  name              String              @unique
-  LeaguePlayerTeams LeaguePlayerTeams[]
-  LeagueMatchDetail LeagueMatchDetail[]
+  id               Int                 @id @default(autoincrement())
+  division         LeagueDivision      @relation(fields: [leagueDivisionId], references: [id])
+  leagueDivisionId Int
+  name             String              @unique
+  initials         String
+  players          LeaguePlayerTeams[]
+  matchDetails     LeagueMatchDetail[]
 }
 
 model LeaguePlayer {
-  id                Int                 @id @default(autoincrement())
-  name              String              @unique
-  nicks             String[]
-  LeaguePlayerTeams LeaguePlayerTeams[]
+  id    Int                 @id @default(autoincrement())
+  name  String              @unique
+  nicks String[]
+  teams LeaguePlayerTeams[]
 }
 
 model LeaguePlayerTeams {
@@ -91,15 +114,17 @@ model LeaguePlayerTeams {
 }
 
 model LeagueMatch {
-  id                Int                 @id @default(autoincrement())
-  date              DateTime
-  matchday          Int
-  title             String
-  LeagueDivision    LeagueDivision      @relation(fields: [leagueDivisionId], references: [id])
-  leagueDivisionId  Int
-  periods           Period[]
-  defwin            Int
-  LeagueMatchDetail LeagueMatchDetail[]
+  id               Int                 @id @default(autoincrement())
+  date             DateTime
+  matchday         Int
+  title            String
+  LeagueDivision   LeagueDivision      @relation(fields: [leagueDivisionId], references: [id])
+  leagueDivisionId Int
+  periods          Period[]
+  defwin           Int
+  addRed           Int
+  addBlue          Int
+  detail           LeagueMatchDetail[]
 }
 
 model LeagueMatchDetail {
