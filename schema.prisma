@@ -27,6 +27,7 @@ model Player {
   auth       String
   conn       String
   name       String
+  team       Int
   goalDetail GoalDetail[]
   stats      PlayerStats[]
 }
