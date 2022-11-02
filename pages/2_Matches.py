@@ -5,7 +5,7 @@ from prisma.models import LeagueMatch
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 
-from utils.utils import hide_streamlit_elements
+from utils.utils import hide_streamlit_elements, get_info_match
 
 hide_streamlit_elements()
 
@@ -51,30 +51,12 @@ def get_teams(_db: Prisma):
     return teams
 
 
-def get_score(match: LeagueMatch):
-    if match.defwin != 0:
-        return (5, 0) if match.defwin == 1 else (0, 5)
-    if len(match.periods) == 0:
-        return -1, -1
-    md_1 = match.detail[0]
-    score_1 = sum([p.scoreRed for p in match.periods[::2]]) + sum(
-        [p.scoreBlue for p in match.periods[1::2]]
-    )
-    score_2 = sum([p.scoreBlue for p in match.periods[::2]]) + sum(
-        [p.scoreRed for p in match.periods[1::2]]
-    )
-    score = [score_1, score_2] if md_1.startsRed else [score_2, score_1]
-    score[0] += match.addRed
-    score[1] += match.addBlue
-    return tuple(score)
-
-
 def build_match_db(match_list: list[LeagueMatch]):
     object_list = []
     for m in match_list:
-        score1, score2 = get_score(m)
-        score = f"{score1}-{score2}"
-        if score1 == -1:
+        info_match = get_info_match(m)
+        score = f"{info_match.score[0]}-{info_match.score[1]}"
+        if info_match.score[0] == -1:
             score = ""
         obj = {
             "division": m.LeagueDivision.name,
