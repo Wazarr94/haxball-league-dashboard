@@ -234,7 +234,7 @@ def display_statsheet(statsheet: PlayerStatSheet):
     col1.metric("Shots", statsheet.stats.shots)
     col2.metric("Shorts (T)", statsheet.stats.shotsTarget)
     col3.metric("Saves", statsheet.stats.saves)
-    col4.metric("Clears", statsheet.stats.clears)
+    col4.metric("Own goals", statsheet.stats.ownGoals)
 
 
 def main():
