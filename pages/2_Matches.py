@@ -1,4 +1,3 @@
-import datetime
 import streamlit as st
 import pandas as pd
 from prisma import Prisma
@@ -56,7 +55,7 @@ def get_score(match: LeagueMatch):
     if match.defwin != 0:
         return (5, 0) if match.defwin == 1 else (0, 5)
     if len(match.periods) == 0:
-        return (-1, -1)
+        return -1, -1
     md_1 = match.detail[0]
     score_1 = sum([p.scoreRed for p in match.periods[::2]]) + sum(
         [p.scoreBlue for p in match.periods[1::2]]
@@ -190,11 +189,11 @@ def main():
         paginationPageSize=pagination_nb,
     )
     gb.configure_grid_options()
-    gridOptions = gb.build()
+    grid_options = gb.build()
 
     AgGrid(
         df,
-        gridOptions=gridOptions,
+        gridOptions=grid_options,
         fit_columns_on_grid_load=True,
     )
 

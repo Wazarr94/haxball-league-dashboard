@@ -143,7 +143,9 @@ def main():
 
     match_details = temp(divisions_list, matches_list, teams_list)
 
-    period_stats = match_details.periods[0]
+    periods_match = match_details.periods
+    periods_match.sort(key=lambda x: x.id)
+    period_stats = periods_match[0]
 
     ps_red: dict[str, PlayerStats] = {}
     ps_blue: dict[str, PlayerStats] = {}
@@ -155,16 +157,22 @@ def main():
             if len(lp_list) > 0:
                 lp_name = lp_list[0].name
             else:
-                print(f"Couldn't recognize player from nick: {lp_name}")
+                lp_name = f"{lp_name} (unknown)"
             ps_red[lp_name] = ps
         elif ps.Player.team == 2:
             lp_name = pname_period
             lp_list = [p for p in players_list if pname_period in p.nicks]
             if len(lp_list) > 0:
                 lp_name = lp_list[0].name
+            else:
+                lp_name = f"{lp_name} (unknown)"
             ps_blue[lp_name] = ps
 
-    tab1, tab2 = st.tabs(["Red team", "Blue team"])
+    detail_1, detail_2 = match_details.detail[0], match_details.detail[1]
+    team_red = detail_1.team if detail_1.startsRed else detail_2.team
+    team_blue = detail_2.team if detail_1.startsRed else detail_1.team
+
+    tab1, tab2 = st.tabs([team_red.name, team_blue.name])
     with tab1:
         for lp_name, ps in ps_red.items():
             st.write(f"### {lp_name}")

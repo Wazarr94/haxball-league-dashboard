@@ -1,6 +1,6 @@
 import streamlit as st
 from prisma import Prisma
-from prisma.models import LeagueMatch, LeagueTeam
+from prisma.models import LeagueMatch
 from prisma.types import PeriodWhereUniqueInput
 
 from utils.utils import hide_streamlit_elements
@@ -62,7 +62,7 @@ def get_idx_starting_red_team(match: LeagueMatch):
     return idx
 
 
-def radio_team_starts(match: LeagueMatch) -> LeagueTeam:
+def radio_team_starts(match: LeagueMatch) -> bool:
     opt_start = [match.detail[0].team, match.detail[1].team]
     opt_start_name = [t.name for t in opt_start]
     t_name_starts = st.radio(
