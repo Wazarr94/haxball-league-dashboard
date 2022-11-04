@@ -1,11 +1,19 @@
-import streamlit as st
 import math
-from prisma import Prisma
-from prisma.models import LeagueMatch, LeagueDivision, LeagueTeam, PlayerStats, Period
 from dataclasses import dataclass
 from itertools import groupby
 
-from utils.utils import GamePosition, hide_streamlit_elements, get_info_match
+import streamlit as st
+from prisma import Prisma
+from prisma.models import (
+    LeagueDivision,
+    LeagueMatch,
+    LeaguePlayer,
+    LeagueTeam,
+    Period,
+    PlayerStats,
+)
+
+from utils.utils import GamePosition, get_info_match, hide_streamlit_elements
 
 hide_streamlit_elements()
 
@@ -40,6 +48,9 @@ def get_matches(_db: Prisma):
         },
         order={"id": "asc"},
     )
+    for m in matches:
+        m.detail.sort(key=lambda d: not d.home)
+        m.periods.sort(key=lambda p: p.id)
     return matches
 
 
@@ -75,18 +86,17 @@ def get_players(_db: Prisma):
     return teams
 
 
-def temp(
-    divisions_list: list[LeagueDivision],
-    matches_list: list[LeagueMatch],
-    teams_list: list[LeagueTeam],
+def select_match(
+    divisions: list[LeagueDivision],
+    matches: list[LeagueMatch],
+    teams: list[LeagueTeam],
 ):
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
         div_name_select = st.selectbox(
             "Division",
-            [d.name for d in divisions_list],
+            [d.name for d in divisions],
         )
-        div_select = [d for d in divisions_list if d.name == div_name_select][0]
     with col2:
         st.text("")
         st.text("")
@@ -96,9 +106,7 @@ def temp(
         )
     with col3:
         if use_team_filter:
-            team_options = [
-                t.name for t in teams_list if t.division.name in div_name_select
-            ]
+            team_options = [t.name for t in teams if t.division.name in div_name_select]
         else:
             team_options = []
         team_options.sort()
@@ -108,7 +116,7 @@ def temp(
         )
 
     match_list_filter: list[LeagueMatch] = []
-    for m in matches_list:
+    for m in matches:
         if m.LeagueDivision.name != div_name_select:
             continue
         if len(m.periods) == 0:
@@ -117,9 +125,11 @@ def temp(
             match_list_filter.append(m)
 
     match_to_edit_title = st.selectbox("Match", [m.title for m in match_list_filter])
-    match_to_edit = [m for m in match_list_filter if m.title == match_to_edit_title][0]
+    match_edit_list = [m for m in match_list_filter if m.title == match_to_edit_title]
+    if len(match_edit_list) > 0:
+        return match_edit_list[0]
 
-    return match_to_edit
+    return None
 
 
 @dataclass
@@ -128,6 +138,42 @@ class PlayerStatSheet:
     team: str
     period_team: int
     stats: PlayerStats
+
+
+def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
+    detail_1, detail_2 = match.detail[0], match.detail[1]
+    ps_list: list[PlayerStatSheet] = []
+    for i, period in enumerate(match.periods):
+        period_stats: Period = period
+        for ps in period_stats.PlayerStats:
+            pname_period = ps.Player.name
+            if ps.Player.team == 1:
+                lp_name = pname_period
+                if i % 2 == 0:
+                    team = detail_1.team if detail_1.startsRed else detail_2.team
+                else:
+                    team = detail_2.team if detail_1.startsRed else detail_1.team
+                lp_list = [p for p in players if pname_period in p.nicks]
+                if len(lp_list) > 0:
+                    lp_name = lp_list[0].name
+                else:
+                    lp_name = f"{lp_name} (unknown)"
+                stat_sheet = PlayerStatSheet(lp_name, team, 1, ps)
+                ps_list.append(stat_sheet)
+            elif ps.Player.team == 2:
+                lp_name = pname_period
+                if i % 2 == 0:
+                    team = detail_2.team if detail_1.startsRed else detail_1.team
+                else:
+                    team = detail_1.team if detail_1.startsRed else detail_2.team
+                lp_list = [p for p in players if pname_period in p.nicks]
+                if len(lp_list) > 0:
+                    lp_name = lp_list[0].name
+                else:
+                    lp_name = f"{lp_name} (unknown)"
+                stat_sheet = PlayerStatSheet(lp_name, team, 2, ps)
+                ps_list.append(stat_sheet)
+    return ps_list
 
 
 def sum_sheets(player_sheets: list[PlayerStatSheet]):
@@ -237,6 +283,48 @@ def display_statsheet(statsheet: PlayerStatSheet):
     col4.metric("Own goals", statsheet.stats.ownGoals)
 
 
+def display_stats_general(match: LeagueMatch):
+    detail_1, detail_2 = match.detail[0], match.detail[1]
+    info_match = get_info_match(match)
+
+    st.write(
+        f"## {detail_1.team.name} {info_match.score[0]}-{info_match.score[1]} {detail_2.team.name}"
+    )
+    poss_1 = info_match.possession[0] / (sum(info_match.possession))
+    poss_2 = 1 - poss_1
+    st.text(f"Possession: {100 * poss_1:.1f}% - {100 * poss_2:.1f}%")
+
+    action_1 = info_match.action_zone[0] / (sum(info_match.action_zone))
+    action_2 = 1 - action_1
+    st.text(f"Action zone: {100 * action_1:.1f}% - {100 * action_2:.1f}%")
+
+
+def display_stats_team(statsheet_list: list[PlayerStatSheet], team: LeagueTeam):
+    pss_list_1 = [pss for pss in statsheet_list if pss.team == team]
+    pss_list_team1 = sum_sheets(pss_list_1)
+    pss_list_team1.sort(key=lambda pss: (pss.stats.gamePosition, -pss.stats.gametime))
+    player_name = st.selectbox(
+        "View player stats", [pss.name for pss in pss_list_team1]
+    )
+    pss_filter = [pss for pss in pss_list_team1 if pss.name == player_name]
+    if len(pss_filter) > 0:
+        display_statsheet(pss_filter[0])
+
+
+def display_stats_teams(match: LeagueMatch, players: list[LeaguePlayer]):
+    detail_1, detail_2 = match.detail[0], match.detail[1]
+    tab1, tab2 = st.tabs([detail_1.team.name, detail_2.team.name])
+
+    ps_list = get_statsheet_list(players, match)
+
+    with tab1:
+        display_stats_team(ps_list, detail_1.team)
+
+    with tab2:
+        display_stats_team(ps_list, detail_2.team)
+    return None
+
+
 def main():
     if "db" not in st.session_state:
         return
@@ -247,87 +335,14 @@ def main():
     divisions_list = get_divisions(db)
     players_list = get_players(db)
 
-    matchday_options = {
-        div.id: set([m.matchday for m in matches_list if m.leagueDivisionId == div.id])
-        for div in divisions_list
-    }
-
     st.write("# Match details")
 
-    match_details: LeagueMatch = temp(divisions_list, matches_list, teams_list)
-    info_match = get_info_match(match_details)
+    match_play: LeagueMatch = select_match(divisions_list, matches_list, teams_list)
+    if match_play is None:
+        return
 
-    periods_match = match_details.periods
-    periods_match.sort(key=lambda x: x.id)
-
-    detail_1, detail_2 = match_details.detail[0], match_details.detail[1]
-    team_red = detail_1.team if detail_1.startsRed else detail_2.team
-    team_blue = detail_2.team if detail_1.startsRed else detail_1.team
-
-    ps_list: list[PlayerStatSheet] = []
-    for i, period in enumerate(periods_match):
-        period_stats: Period = period
-        for ps in period_stats.PlayerStats:
-            pname_period = ps.Player.name
-            if ps.Player.team == 1:
-                lp_name = pname_period
-                team = team_red if i % 2 == 0 else team_blue
-                lp_list = [p for p in players_list if pname_period in p.nicks]
-                if len(lp_list) > 0:
-                    lp_name = lp_list[0].name
-                else:
-                    lp_name = f"{lp_name} (unknown)"
-                stat_sheet = PlayerStatSheet(lp_name, team, 1, ps)
-                ps_list.append(stat_sheet)
-            elif ps.Player.team == 2:
-                lp_name = pname_period
-                team = team_blue if i % 2 == 0 else team_red
-                lp_list = [p for p in players_list if pname_period in p.nicks]
-                if len(lp_list) > 0:
-                    lp_name = lp_list[0].name
-                else:
-                    lp_name = f"{lp_name} (unknown)"
-                stat_sheet = PlayerStatSheet(lp_name, team, 2, ps)
-                ps_list.append(stat_sheet)
-
-    st.write(
-        f"## {team_red.name} {info_match.score[0]}-{info_match.score[1]} {team_blue.name}"
-    )
-    poss_red = info_match.possession[0] / (sum(info_match.possession))
-    poss_blue = 1 - poss_red
-    st.text(f"Possession: {100 * poss_red:.1f}% - {100 * poss_blue:.1f}%")
-
-    action_red = info_match.action_zone[0] / (sum(info_match.action_zone))
-    action_blue = 1 - action_red
-    st.text(f"Action zone: {100 * action_red:.1f}% - {100 * action_blue:.1f}%")
-
-    tab1, tab2 = st.tabs([team_red.name, team_blue.name])
-
-    with tab1:
-        pss_list_1 = [pss for pss in ps_list if pss.team == team_red]
-        pss_list_team1 = sum_sheets(pss_list_1)
-        pss_list_team1.sort(
-            key=lambda pss: (pss.stats.gamePosition, -pss.stats.gametime)
-        )
-        player_name = st.selectbox(
-            "View player stats", [pss.name for pss in pss_list_team1]
-        )
-        pss_filter = [pss for pss in pss_list_team1 if pss.name == player_name]
-        if len(pss_filter) > 0:
-            display_statsheet(pss_filter[0])
-
-    with tab2:
-        pss_list_2 = [pss for pss in ps_list if pss.team == team_blue]
-        pss_list_team2 = sum_sheets(pss_list_2)
-        pss_list_team2.sort(
-            key=lambda pss: (pss.stats.gamePosition, -pss.stats.gametime)
-        )
-        player_name = st.selectbox(
-            "View player stats", [pss.name for pss in pss_list_team2]
-        )
-        pss_filter = [pss for pss in pss_list_team2 if pss.name == player_name]
-        if len(pss_filter) > 0:
-            display_statsheet(pss_filter[0])
+    display_stats_general(match_play)
+    display_stats_teams(match_play, players_list)
 
 
 if __name__ == "__main__":

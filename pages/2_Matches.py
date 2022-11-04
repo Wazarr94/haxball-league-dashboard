@@ -1,11 +1,13 @@
-import streamlit as st
+from typing import Optional
+
 import pandas as pd
+import streamlit as st
 from prisma import Prisma
-from prisma.models import LeagueMatch
+from prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 
-from utils.utils import hide_streamlit_elements, get_info_match
+from utils.utils import get_info_match, hide_streamlit_elements
 
 hide_streamlit_elements()
 
@@ -24,6 +26,9 @@ def get_matches(_db: Prisma):
         },
         order={"id": "asc"},
     )
+    for m in matches:
+        m.detail.sort(key=lambda d: not d.home)
+        m.periods.sort(key=lambda p: p.id)
     return matches
 
 
@@ -49,6 +54,23 @@ def get_teams(_db: Prisma):
         order={"id": "asc"},
     )
     return teams
+
+
+def filter_matches(
+    matches: list[LeagueMatch],
+    team: Optional[LeagueTeam],
+    division: LeagueDivision,
+    matchdays_select: tuple[int],
+):
+    match_list_filter = []
+    for m in matches:
+        if m.matchday < matchdays_select[0] or m.matchday > matchdays_select[1]:
+            continue
+        if m.LeagueDivision.name != division:
+            continue
+        if team is None or any([md.team.name == team for md in m.detail]):
+            match_list_filter.append(m)
+    return match_list_filter
 
 
 def build_match_db(match_list: list[LeagueMatch]):
@@ -100,7 +122,7 @@ def main():
         div.id: len(matchday_options[div.id]) / 2 for div in divisions_list
     }
 
-    st.write("# Season 3 matches")
+    st.write("# Season 4 matches")
 
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
@@ -141,14 +163,9 @@ def main():
         ),
     )
 
-    match_list_filter = []
-    for m in matches_list:
-        if m.matchday < matchdays_select[0] or m.matchday > matchdays_select[1]:
-            continue
-        if m.LeagueDivision.name != div_name_select:
-            continue
-        if team_select is None or any([md.team.name == team_select for md in m.detail]):
-            match_list_filter.append(m)
+    match_list_filter = filter_matches(
+        matches_list, team_select, div_name_select, matchdays_select
+    )
 
     df = build_match_db(match_list_filter)
     gb = GridOptionsBuilder.from_dataframe(df)

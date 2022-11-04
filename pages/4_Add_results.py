@@ -1,6 +1,6 @@
 import streamlit as st
 from prisma import Prisma
-from prisma.models import LeagueMatch
+from prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
 from prisma.types import PeriodWhereUniqueInput
 
 from utils.utils import hide_streamlit_elements
@@ -22,6 +22,9 @@ def get_matches(_db: Prisma):
         },
         order={"id": "asc"},
     )
+    for m in matches:
+        m.detail.sort(key=lambda d: not d.home)
+        m.periods.sort(key=lambda p: p.id)
     return matches
 
 
@@ -55,6 +58,58 @@ def get_periods(_db: Prisma):
         order={"id": "asc"},
     )
     return periods
+
+
+def select_match(
+    divisions: list[LeagueDivision],
+    teams: list[LeagueTeam],
+    matches: list[LeagueMatch],
+):
+    matchday_options = {
+        div.id: set([m.matchday for m in matches if m.leagueDivisionId == div.id])
+        for div in divisions
+    }
+
+    col1, col2, col3 = st.columns([3, 2, 9])
+    with col1:
+        div_name_select = st.selectbox(
+            "Division",
+            [d.name for d in divisions],
+        )
+        div_select = [d for d in divisions if d.name == div_name_select][0]
+    with col2:
+        st.text("")
+        st.text("")
+        use_team_filter = st.checkbox(
+            "Filter team",
+            True,
+        )
+    with col3:
+        if use_team_filter:
+            team_options = [t.name for t in teams if t.division.name in div_name_select]
+        else:
+            team_options = []
+        team_options.sort()
+        team_select = st.selectbox(
+            "Team",
+            team_options,
+        )
+
+    matchdays_options_div = matchday_options[div_select.id]
+    matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
+
+    match_list_filter: list[LeagueMatch] = []
+    for m in matches:
+        if m.matchday != matchday_select:
+            continue
+        if m.LeagueDivision.name != div_name_select:
+            continue
+        if team_select is None or any([md.team.name == team_select for md in m.detail]):
+            match_list_filter.append(m)
+
+    match_to_edit_title = st.selectbox("Match", [m.title for m in match_list_filter])
+    match_to_edit = [m for m in match_list_filter if m.title == match_to_edit_title][0]
+    return match_to_edit
 
 
 def get_idx_starting_red_team(match: LeagueMatch):
@@ -107,6 +162,7 @@ def process_edit(
     period1_id: str,
     period2_id: str,
     period3_id: str,
+    replay_url: str,
 ):
 
     detail_1 = db.leaguematchdetail.update(
@@ -148,6 +204,7 @@ def process_edit(
             "periods": {
                 "set": periods,
             },
+            "replayURL": replay_url,
         },
     )
 
@@ -167,54 +224,9 @@ def main():
     divisions_list = get_divisions(db)
     periods_list = get_periods(db)
 
-    matchday_options = {
-        div.id: set([m.matchday for m in matches_list if m.leagueDivisionId == div.id])
-        for div in divisions_list
-    }
-
     st.write("# Add results")
 
-    col1, col2, col3 = st.columns([3, 2, 9])
-    with col1:
-        div_name_select = st.selectbox(
-            "Division",
-            [d.name for d in divisions_list],
-        )
-        div_select = [d for d in divisions_list if d.name == div_name_select][0]
-    with col2:
-        st.text("")
-        st.text("")
-        use_team_filter = st.checkbox(
-            "Filter team",
-            True,
-        )
-    with col3:
-        if use_team_filter:
-            team_options = [
-                t.name for t in teams_list if t.division.name in div_name_select
-            ]
-        else:
-            team_options = []
-        team_options.sort()
-        team_select = st.selectbox(
-            "Team",
-            team_options,
-        )
-
-    matchdays_options_div = matchday_options[div_select.id]
-    matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
-
-    match_list_filter: list[LeagueMatch] = []
-    for m in matches_list:
-        if m.matchday != matchday_select:
-            continue
-        if m.LeagueDivision.name != div_name_select:
-            continue
-        if team_select is None or any([md.team.name == team_select for md in m.detail]):
-            match_list_filter.append(m)
-
-    match_to_edit_title = st.selectbox("Match", [m.title for m in match_list_filter])
-    match_to_edit = [m for m in match_list_filter if m.title == match_to_edit_title][0]
+    match_to_edit = select_match(divisions_list, teams_list, matches_list)
 
     with st.container():
         st.write("### General")
@@ -255,6 +267,10 @@ def main():
             can_submit = False
             st.error("Period 3 id invalid!")
 
+        st.write("### Replay link")
+
+        replay_url = st.text_input("Replay", "")
+
         submitted = st.button("Submit")
         if submitted:
             if not can_submit:
@@ -270,6 +286,7 @@ def main():
                     period1_id,
                     period2_id,
                     period3_id,
+                    replay_url,
                 )
                 st.success("Game processed")
 

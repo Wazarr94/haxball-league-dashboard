@@ -1,6 +1,6 @@
 import streamlit as st
 from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueTeam
+from prisma.models import LeagueDivision, LeaguePlayer, LeagueTeam
 
 from utils.utils import hide_streamlit_elements
 
@@ -41,38 +41,27 @@ def select_team(teams: list[LeagueTeam], divisions: list[LeagueDivision]):
     with col2:
         team_options = [t.name for t in teams if t.division.name in div_select]
         team_options.sort()
-        team_select = st.selectbox(
+        team_name_select = st.selectbox(
             "Team",
             team_options,
         )
-    team_obj = [t for t in teams if t.name == team_select][0]
+    team_obj = [t for t in teams if t.name == team_name_select][0]
     return team_obj
 
 
-def display_active_players(team: LeagueTeam):
-    active_players = [p.player for p in team.players if p.active]
-    st.write(f"**Active players ({len(active_players)}/12):**")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        for player in active_players[::2]:
-            st.write(f"- {player.name}")
-    with col2:
-        for player in active_players[1::2]:
-            st.write(f"- {player.name}")
+def select_player(team: LeagueTeam):
+    active_players = [tp.player for tp in team.players if tp.active]
+    active_players_name = [p.name for p in active_players]
+    player_name_select = st.selectbox(
+        "Player",
+        active_players_name,
+    )
+    player_obj = [p for p in active_players if p.name == player_name_select][0]
+    return player_obj
 
 
-def display_former_players(team: LeagueTeam):
-    former_players = [p.player for p in team.players if not p.active]
-    st.write(f"**Former players:**")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        for player in former_players[::2]:
-            st.write(f"- {player.name}")
-    with col2:
-        for player in former_players[1::2]:
-            st.write(f"- {player.name}")
+def process_new_nick(player: LeaguePlayer, nick: str):
+    return None
 
 
 def main():
@@ -83,16 +72,25 @@ def main():
     teams_list = get_teams(db)
     divisions_list = get_divisions(db)
 
-    st.write("# Season 4 teams")
+    st.write("# Edit player details")
 
     team = select_team(teams_list, divisions_list)
     if team is None:
         return
 
-    st.write(f"## {team.name}")
+    player = select_player(team)
+    if player is None:
+        return
 
-    display_active_players(team)
-    display_former_players(team)
+    st.write(f"## {player.name}")
+
+    st.write("### Nicks")
+    for nick in player.nicks:
+        st.write(f"- {nick}")
+    new_nick = st.text_input("New nick", "")
+    nick_submitted = st.button("Add new nick")
+    if nick_submitted:
+        process_new_nick(player, new_nick)
 
 
 if __name__ == "__main__":

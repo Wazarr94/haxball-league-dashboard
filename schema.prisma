@@ -125,6 +125,7 @@ model LeagueMatch {
   defwin           Int
   addRed           Int
   addBlue          Int
+  replayURL        String
   detail           LeagueMatchDetail[]
 }
 
@@ -133,6 +134,7 @@ model LeagueMatchDetail {
   leagueMatchId Int
   team          LeagueTeam  @relation(fields: [leagueTeamId], references: [id])
   leagueTeamId  Int
+  home          Boolean
   startsRed     Boolean
 
   @@id([leagueMatchId, leagueTeamId])
