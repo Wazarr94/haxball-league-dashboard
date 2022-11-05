@@ -52,9 +52,9 @@ model GoalDetail {
 
 model PlayerStats {
   id                String @id @default(cuid())
-  period            Period @relation(fields: [periodId], references: [id])
+  period            Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
   periodId          BigInt
-  Player            Player @relation(fields: [playerId], references: [id])
+  Player            Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   playerId          String
   gametime          Float
   goals             Int
@@ -89,7 +89,7 @@ model LeagueDivision {
 
 model LeagueTeam {
   id               Int                 @id @default(autoincrement())
-  division         LeagueDivision      @relation(fields: [leagueDivisionId], references: [id])
+  division         LeagueDivision      @relation(fields: [leagueDivisionId], references: [id], onDelete: Cascade)
   leagueDivisionId Int
   name             String              @unique
   initials         String
@@ -105,9 +105,9 @@ model LeaguePlayer {
 }
 
 model LeaguePlayerTeams {
-  player         LeaguePlayer @relation(fields: [leaguePlayerId], references: [id])
+  player         LeaguePlayer @relation(fields: [leaguePlayerId], references: [id], onDelete: Cascade)
   leaguePlayerId Int
-  team           LeagueTeam   @relation(fields: [leagueTeamId], references: [id])
+  team           LeagueTeam   @relation(fields: [leagueTeamId], references: [id], onDelete: Cascade)
   leagueTeamId   Int
   active         Boolean
 
@@ -119,7 +119,7 @@ model LeagueMatch {
   date             DateTime
   matchday         Int
   title            String
-  LeagueDivision   LeagueDivision      @relation(fields: [leagueDivisionId], references: [id])
+  LeagueDivision   LeagueDivision      @relation(fields: [leagueDivisionId], references: [id], onDelete: Cascade)
   leagueDivisionId Int
   periods          Period[]
   defwin           Int
@@ -130,9 +130,9 @@ model LeagueMatch {
 }
 
 model LeagueMatchDetail {
-  match         LeagueMatch @relation(fields: [leagueMatchId], references: [id])
+  match         LeagueMatch @relation(fields: [leagueMatchId], references: [id], onDelete: Cascade)
   leagueMatchId Int
-  team          LeagueTeam  @relation(fields: [leagueTeamId], references: [id])
+  team          LeagueTeam  @relation(fields: [leagueTeamId], references: [id], onDelete: Cascade)
   leagueTeamId  Int
   home          Boolean
   startsRed     Boolean
