@@ -148,12 +148,12 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
         for ps in period_stats.PlayerStats:
             pname_period = ps.Player.name
             if ps.Player.team == 1:
-                lp_name = pname_period
+                lp_name = pname_period.strip()
                 if i % 2 == 0:
                     team = detail_1.team if detail_1.startsRed else detail_2.team
                 else:
                     team = detail_2.team if detail_1.startsRed else detail_1.team
-                lp_list = [p for p in players if pname_period in p.nicks]
+                lp_list = [p for p in players if lp_name in p.nicks]
                 if len(lp_list) > 0:
                     lp_name = lp_list[0].name
                 else:
@@ -161,12 +161,12 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                 stat_sheet = PlayerStatSheet(lp_name, team, 1, ps)
                 ps_list.append(stat_sheet)
             elif ps.Player.team == 2:
-                lp_name = pname_period
+                lp_name = pname_period.strip()
                 if i % 2 == 0:
                     team = detail_2.team if detail_1.startsRed else detail_1.team
                 else:
                     team = detail_1.team if detail_1.startsRed else detail_2.team
-                lp_list = [p for p in players if pname_period in p.nicks]
+                lp_list = [p for p in players if lp_name in p.nicks]
                 if len(lp_list) > 0:
                     lp_name = lp_list[0].name
                 else:
