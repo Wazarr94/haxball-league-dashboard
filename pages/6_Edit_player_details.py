@@ -59,15 +59,27 @@ def select_new_team(teams: list[LeagueTeam]):
     return None
 
 
-def process_new_player(player_name: str, team: LeagueTeam):
+def process_new_player(db: Prisma, player_name: str, team: LeagueTeam):
     return None
 
 
-def process_new_nick(player: LeaguePlayer, nick: str):
-    return None
+def process_new_nick(db: Prisma, player: LeaguePlayer, nick: str):
+    nicks_player = [n for n in player.nicks]
+    nicks_player.append(nick)
+
+    db.leagueplayer.update(
+        where={"id": player.id},
+        data={
+            "nicks": {"set": nicks_player},
+        },
+    )
+
+    get_players.clear()
+    return get_players(db)
 
 
 def process_new_team(
+    db: Prisma,
     player: LeaguePlayer,
     new_team: Optional[LeagueTeam],
     current_team: Optional[LeagueTeam],
@@ -95,8 +107,9 @@ def main():
     st.write("## Add new player")
     player_name = st.text_input("Player name", "")
     player_submitted = st.button("Add player", disabled=(team is None))
+    st.warning("Not implemented")
     if player_submitted:
-        process_new_player(player_name, team)
+        players_list = process_new_player(db, player_name, team)
 
     st.write("## Edit player")
     player = select_player(team, players_list)
@@ -111,13 +124,14 @@ def main():
     new_nick = st.text_input("New nick", "")
     nick_submitted = st.button("Add nick")
     if nick_submitted:
-        process_new_nick(player, new_nick)
+        process_new_nick(db, player, new_nick)
 
     st.write("#### Team")
     new_team = st.text_input("New team", "")
     team_submitted = st.button("Change team")
+    st.warning("Not implemented")
     if team_submitted:
-        process_new_team(player, new_team, team)
+        process_new_team(db, player, new_team, team)
 
 
 if __name__ == "__main__":
