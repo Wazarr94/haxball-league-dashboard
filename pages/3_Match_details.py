@@ -28,7 +28,9 @@ def select_match(
     teams: list[LeagueTeam],
 ):
     matchday_options = {
-        div.id: set([m.matchday for m in matches if m.leagueDivisionId == div.id])
+        div.id: list(
+            dict.fromkeys([m.matchday for m in matches if m.leagueDivisionId == div.id])
+        )
         for div in divisions
     }
 

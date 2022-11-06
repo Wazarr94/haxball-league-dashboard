@@ -15,10 +15,11 @@ def select_match(
     matches: list[LeagueMatch],
 ):
     matchday_options = {
-        div.id: set([m.matchday for m in matches if m.leagueDivisionId == div.id])
+        div.id: list(
+            dict.fromkeys([m.matchday for m in matches if m.leagueDivisionId == div.id])
+        )
         for div in divisions
     }
-
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
         div_name_select = st.selectbox(
@@ -222,7 +223,7 @@ def main():
 
         st.write("### Replay link")
 
-        replay_url = st.text_input("Replay", "")
+        replay_url = st.text_input("Replay", match_to_edit.replayURL)
 
         submitted = st.button("Submit")
         if submitted:

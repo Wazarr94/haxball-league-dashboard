@@ -17,12 +17,9 @@ def filter_matches(
     matches: list[LeagueMatch],
     team: Optional[LeagueTeam],
     division: LeagueDivision,
-    matchdays_select: tuple[int],
 ):
     match_list_filter = []
     for m in matches:
-        if m.matchday < matchdays_select[0] or m.matchday > matchdays_select[1]:
-            continue
         if m.LeagueDivision.name != division:
             continue
         if team is None or any([md.team.name == team for md in m.detail]):
@@ -60,7 +57,9 @@ def main():
     divisions_list = get_divisions(db)
 
     matchday_options = {
-        div.id: set([m.matchday for m in matches_list if m.leagueDivisionId == div.id])
+        div.id: set(
+            sorted([m.matchday for m in matches_list if m.leagueDivisionId == div.id])
+        )
         for div in divisions_list
     }
 
@@ -108,21 +107,7 @@ def main():
             team_options,
         )
 
-    matchdays_options_div = matchday_options[div_select.id]
-
-    matchdays_select = st.slider(
-        "Matchdays",
-        min_value=min(matchdays_options_div),
-        max_value=max(matchdays_options_div),
-        value=(
-            min(matchdays_options_div),
-            max(matchdays_options_div),
-        ),
-    )
-
-    match_list_filter = filter_matches(
-        matches_list, team_select, div_name_select, matchdays_select
-    )
+    match_list_filter = filter_matches(matches_list, team_select, div_name_select)
 
     df = build_match_db(match_list_filter)
     gb = GridOptionsBuilder.from_dataframe(df)
