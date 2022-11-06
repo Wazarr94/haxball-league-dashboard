@@ -108,7 +108,7 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                     lp = None
                     lp_name = f"{lp_name} (unknown)"
                 stat_sheet = PlayerStatSheet(
-                    lp, pname_period, team, 1, ps, getCS(ps, period, 1)
+                    lp, lp_name, team, 1, ps, getCS(ps, period, 1)
                 )
                 ps_list.append(stat_sheet)
             elif ps.Player.team == 2:
@@ -127,7 +127,7 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                     lp = None
                     lp_name = f"{lp_name} (unknown)"
                 stat_sheet = PlayerStatSheet(
-                    lp, pname_period, team, 2, ps, getCS(ps, period, 2)
+                    lp, lp_name, team, 2, ps, getCS(ps, period, 2)
                 )
                 ps_list.append(stat_sheet)
     return ps_list
