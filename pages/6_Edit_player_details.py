@@ -111,6 +111,10 @@ def main():
         return
     db: Prisma = st.session_state["db"]
 
+    if not st.session_state["authentication_status"]:
+        st.error("You are not allowed to see this page")
+        return
+
     teams_list = get_teams(db)
     divisions_list = get_divisions(db)
     players_list = get_players(db)

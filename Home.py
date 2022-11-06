@@ -1,7 +1,10 @@
-import streamlit as st
-from prisma import Prisma
-from dotenv import load_dotenv
 import os
+import yaml
+
+import streamlit as st
+import streamlit_authenticator as stauth
+from dotenv import load_dotenv
+from prisma import Prisma
 
 from utils.utils import hide_streamlit_elements
 
@@ -22,12 +25,35 @@ def init_connection():
     return db
 
 
+def init_login():
+    with open("login.yaml") as file:
+        config = yaml.load(file, Loader=yaml.SafeLoader)
+
+    authenticator = stauth.Authenticate(
+        config["credentials"],
+        config["cookie"]["name"],
+        config["cookie"]["key"],
+        config["cookie"]["expiry_days"],
+        [],
+    )
+    return authenticator
+
+
 def main():
     db = init_connection()
     st.session_state["db"] = db
 
     st.write("# Home page")
     st.write("#### Welcome to the BFF dashboard")
+
+    authenticator = init_login()
+    authenticator.login("Login", "main")
+
+    if st.session_state["authentication_status"]:
+        st.write(f'Connected as *{st.session_state["name"]}*')
+        authenticator.logout("Logout", "main")
+    elif st.session_state["authentication_status"] == False:
+        st.error("Username/password is incorrect")
 
 
 if __name__ == "__main__":

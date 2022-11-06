@@ -17,6 +17,11 @@ from utils.utils import (
 
 hide_streamlit_elements()
 
+# TODO: Display team
+# TODO: Display time correctly
+# TODO: Add CS
+# TODO: Add stats / 14mn
+
 
 @st.experimental_memo(ttl=600)
 def get_matches(_db: Prisma):

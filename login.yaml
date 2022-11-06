@@ -1,0 +1,25 @@
+credentials:
+  usernames:
+    wazarr:
+      name: Wazarr
+      password: $2b$12$TuM9bJf7Zt83gI1.oOg8Fu9q9b02XhPcPXPIQ2HG.NEQWtNtT1KVW
+    daffyd:
+      name: Daffyd
+      password: $2b$12$eq8FRk2OXU2UpWzThMia4uVmaGff7V3CijRA6.YwG4mLxPi.hnFAK
+    girlontar:
+      name: Girl
+      password: $2b$12$f3bYVZ8PSoykhBbam9iqSeQF/Sv0VuY2MGYOc/tsC3vzwPmEWeBca
+    atuntija:
+      name: AT
+      password: $2b$12$x03f.rvSC.psIfZrgmdRp.W2J2PZhxqT3Kz00rBMn7lDM8vSh5aQC
+    hassi:
+      name: Hassi
+      password: $2b$12$/6ZHEhxOhfJUG.cYcgnB5Ovx4T5DzUfLaiYL6HWo5s.zpRkKSv7LG
+    yazuneh:
+      name: Yazuneh
+      password: $2b$12$AU1aeMuTdusuc8rOBM398ONye0wSlL9uaxU0EYYyJL6kpsQ6IC2UK
+
+cookie:
+  expiry_days: 3650
+  key: name123123
+  name: login_reauthenticate

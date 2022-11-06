@@ -20,6 +20,9 @@ from utils.utils import (
 
 hide_streamlit_elements()
 
+# TODO: Filter by matchday like the Add results page
+# TODO: Add CS
+
 
 @st.experimental_memo(ttl=600)
 def get_matches(_db: Prisma):
