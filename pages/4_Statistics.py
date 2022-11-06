@@ -61,12 +61,9 @@ def filter_matches(
     matches: list[LeagueMatch],
     team_name: Optional[str],
     division: LeagueDivision,
-    matchdays_select: tuple[int],
 ):
     match_list_filter = []
     for m in matches:
-        if m.matchday < matchdays_select[0] or m.matchday > matchdays_select[1]:
-            continue
         if m.LeagueDivision.name != division:
             continue
         if team_name is None or any([md.team.name == team_name for md in m.detail]):
@@ -293,30 +290,11 @@ def main():
     divisions_list = get_divisions(db)
     players_list = get_players(db)
 
-    matchday_options = {
-        div.id: set([m.matchday for m in matches_list if m.leagueDivisionId == div.id])
-        for div in divisions_list
-    }
-
     st.write("# Season 9 playoff statistics")
 
     div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
-    matchdays_options_div = matchday_options[div_select.id]
 
-    matchday_stats_max = get_max_matchday_stats(matches_list, div_select)
-    matchdays_select = st.slider(
-        "Matchdays",
-        min_value=min(matchdays_options_div),
-        max_value=max(matchdays_options_div),
-        value=(
-            min(matchdays_options_div),
-            matchday_stats_max,
-        ),
-    )
-
-    match_list_filter = filter_matches(
-        matches_list, team_name_select, div_select.name, matchdays_select
-    )
+    match_list_filter = filter_matches(matches_list, team_name_select, div_select.name)
 
     stats_players = get_stats(
         match_list_filter,

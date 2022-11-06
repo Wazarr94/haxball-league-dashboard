@@ -93,12 +93,14 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
         for ps in period_stats.PlayerStats:
             pname_period = ps.Player.name
             if ps.Player.team == 1:
-                lp_name = pname_period.strip()
+                lp_name = pname_period.strip().lower()
                 if i % 2 == 0:
                     team = detail_1.team if detail_1.startsRed else detail_2.team
                 else:
                     team = detail_2.team if detail_1.startsRed else detail_1.team
-                lp_list = [p for p in players if lp_name in p.nicks]
+                lp_list = [
+                    p for p in players if lp_name in [n.lower() for n in p.nicks]
+                ]
                 if len(lp_list) > 0:
                     lp = lp_list[0]
                     lp_name = lp.name
@@ -106,16 +108,18 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                     lp = None
                     lp_name = f"{lp_name} (unknown)"
                 stat_sheet = PlayerStatSheet(
-                    lp, lp_name, team, 1, ps, getCS(ps, period, 1)
+                    lp, pname_period, team, 1, ps, getCS(ps, period, 1)
                 )
                 ps_list.append(stat_sheet)
             elif ps.Player.team == 2:
-                lp_name = pname_period.strip()
+                lp_name = pname_period.strip().lower()
                 if i % 2 == 0:
                     team = detail_2.team if detail_1.startsRed else detail_1.team
                 else:
                     team = detail_1.team if detail_1.startsRed else detail_2.team
-                lp_list = [p for p in players if lp_name in p.nicks]
+                lp_list = [
+                    p for p in players if lp_name in [n.lower() for n in p.nicks]
+                ]
                 if len(lp_list) > 0:
                     lp = lp_list[0]
                     lp_name = lp.name
@@ -123,7 +127,7 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                     lp = None
                     lp_name = f"{lp_name} (unknown)"
                 stat_sheet = PlayerStatSheet(
-                    lp, lp_name, team, 2, ps, getCS(ps, period, 2)
+                    lp, pname_period, team, 2, ps, getCS(ps, period, 2)
                 )
                 ps_list.append(stat_sheet)
     return ps_list

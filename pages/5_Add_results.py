@@ -58,8 +58,10 @@ def select_match(
             match_list_filter.append(m)
 
     match_to_edit_title = st.selectbox("Match", [m.title for m in match_list_filter])
-    match_to_edit = [m for m in match_list_filter if m.title == match_to_edit_title][0]
-    return match_to_edit
+    match_list = [m for m in match_list_filter if m.title == match_to_edit_title]
+    if len(match_list) == 0:
+        return None
+    return match_list[0]
 
 
 def get_idx_starting_red_team(match: LeagueMatch):
@@ -181,6 +183,8 @@ def main():
     st.write("# Add results")
 
     match_to_edit = select_match(divisions_list, teams_list, matches_list)
+    if match_to_edit is None:
+        return
 
     with st.container():
         st.write("### General")
