@@ -119,7 +119,7 @@ model LeagueMatch {
   date             DateTime
   matchday         String
   gameNumber       Int
-  title            String
+  title            String              @unique
   LeagueDivision   LeagueDivision      @relation(fields: [leagueDivisionId], references: [id], onDelete: Cascade)
   leagueDivisionId Int
   periods          Period[]

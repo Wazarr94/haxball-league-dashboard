@@ -66,7 +66,7 @@ def select_match(
             continue
         if m.LeagueDivision.name != div_name_select:
             continue
-        if not is_match_played(m):
+        if len(m.periods) == 0:
             continue
         if team_select is None or any([md.team.name == team_select for md in m.detail]):
             match_list_filter.append(m)
