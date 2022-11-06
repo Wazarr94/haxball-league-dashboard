@@ -1,10 +1,10 @@
-import yaml
-
 import streamlit as st
 import streamlit_authenticator as stauth
+import yaml
 from dotenv import load_dotenv
 
 from utils.data import init_connection
+
 from utils.utils import hide_streamlit_elements
 
 load_dotenv()
@@ -29,6 +29,10 @@ def init_login():
 def main():
     db = init_connection()
     st.session_state["db"] = db
+
+    reload_data_btn = st.button("Reload data")
+    if reload_data_btn:
+        st.experimental_singleton.clear()
 
     st.write("# Home page")
     st.write("#### Welcome to the BFF dashboard")

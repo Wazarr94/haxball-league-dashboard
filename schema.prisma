@@ -117,7 +117,8 @@ model LeaguePlayerTeams {
 model LeagueMatch {
   id               Int                 @id @default(autoincrement())
   date             DateTime
-  matchday         Int
+  matchday         String
+  gameNumber       Int
   title            String
   LeagueDivision   LeagueDivision      @relation(fields: [leagueDivisionId], references: [id], onDelete: Cascade)
   leagueDivisionId Int

@@ -60,7 +60,7 @@ def main():
     teams_list = get_teams(db)
     divisions_list = get_divisions(db)
 
-    st.write("# Season 4 teams")
+    st.write("# Season 9 playoff teams")
 
     team = select_team(teams_list, divisions_list)
     if team is None:

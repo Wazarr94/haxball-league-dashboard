@@ -298,7 +298,7 @@ def main():
         for div in divisions_list
     }
 
-    st.write("# Season 4 statistics")
+    st.write("# Season 9 playoff statistics")
 
     div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
     matchdays_options_div = matchday_options[div_select.id]
