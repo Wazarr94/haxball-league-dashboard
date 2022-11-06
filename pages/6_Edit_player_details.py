@@ -4,41 +4,10 @@ import streamlit as st
 from prisma import Prisma
 from prisma.models import LeagueDivision, LeaguePlayer, LeagueTeam
 
+from utils.data import get_divisions, get_players, get_teams
 from utils.utils import hide_streamlit_elements
 
 hide_streamlit_elements()
-
-
-@st.experimental_memo(ttl=600)
-def get_teams(_db: Prisma):
-    teams = _db.leagueteam.find_many(
-        include={
-            "division": True,
-            "players": {
-                "include": {
-                    "player": True,
-                }
-            },
-        },
-        order={"id": "asc"},
-    )
-    return teams
-
-
-@st.experimental_memo(ttl=600)
-def get_divisions(_db: Prisma):
-    divisions = _db.leaguedivision.find_many(
-        order={"id": "asc"},
-    )
-    return divisions
-
-
-@st.experimental_memo(ttl=600)
-def get_players(_db: Prisma):
-    teams = _db.leagueplayer.find_many(
-        order={"id": "asc"},
-    )
-    return teams
 
 
 def select_team(teams: list[LeagueTeam], divisions: list[LeagueDivision]):

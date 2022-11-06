@@ -1,28 +1,15 @@
-import os
 import yaml
 
 import streamlit as st
 import streamlit_authenticator as stauth
 from dotenv import load_dotenv
-from prisma import Prisma
 
+from utils.data import init_connection
 from utils.utils import hide_streamlit_elements
 
 load_dotenv()
 
 hide_streamlit_elements()
-
-
-@st.experimental_singleton
-def init_connection():
-    url = os.environ["DATABASE_URL"]
-    db = Prisma(
-        datasource={
-            "url": url,
-        }
-    )
-    db.connect()
-    return db
 
 
 def init_login():

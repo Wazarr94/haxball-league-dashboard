@@ -7,6 +7,7 @@ from prisma.models import (
     LeagueTeam,
 )
 
+from utils.data import get_divisions, get_matches, get_players, get_teams
 from utils.utils import (
     GamePosition,
     PlayerStatSheet,
@@ -19,74 +20,6 @@ from utils.utils import (
 )
 
 hide_streamlit_elements()
-
-
-@st.experimental_memo(ttl=600)
-def get_matches(_db: Prisma):
-    matches = _db.leaguematch.find_many(
-        include={
-            "LeagueDivision": True,
-            "detail": {
-                "include": {
-                    "team": True,
-                }
-            },
-            "periods": {
-                "include": {
-                    "PlayerStats": {
-                        "include": {
-                            "Player": {
-                                "include": {
-                                    "goalDetail": {
-                                        "include": {
-                                            "goal": True,
-                                        }
-                                    },
-                                }
-                            },
-                        }
-                    }
-                }
-            },
-        },
-        order={"id": "asc"},
-    )
-    for m in matches:
-        m.detail.sort(key=lambda d: not d.home)
-        m.periods.sort(key=lambda p: p.id)
-    return matches
-
-
-@st.experimental_memo(ttl=600)
-def get_divisions(_db: Prisma):
-    divisions = _db.leaguedivision.find_many(
-        order={"id": "asc"},
-    )
-    return divisions
-
-
-@st.experimental_memo(ttl=600)
-def get_teams(_db: Prisma):
-    teams = _db.leagueteam.find_many(
-        include={
-            "division": True,
-            "players": {
-                "include": {
-                    "player": True,
-                }
-            },
-        },
-        order={"id": "asc"},
-    )
-    return teams
-
-
-@st.experimental_memo(ttl=600)
-def get_players(_db: Prisma):
-    players = _db.leagueplayer.find_many(
-        order={"id": "asc"},
-    )
-    return players
 
 
 def select_match(
