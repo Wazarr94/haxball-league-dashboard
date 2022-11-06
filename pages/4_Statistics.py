@@ -13,14 +13,11 @@ from utils.utils import (
     get_statsheet_list,
     hide_streamlit_elements,
     sum_sheets,
+    is_match_played,
+    display_gametime,
 )
 
 hide_streamlit_elements()
-
-# TODO: Display team
-# TODO: Display time correctly
-# TODO: Add CS
-# TODO: Add stats / 14mn
 
 
 @st.experimental_memo(ttl=600)
@@ -119,14 +116,6 @@ def get_div_team_select(divisions: list[LeagueDivision], teams: list[LeagueTeam]
     return div_select, team_name_select
 
 
-def is_match_played(match: LeagueMatch):
-    if match.addBlue != 0 or match.addRed != 0 or match.defwin != 0:
-        return True
-    if match.periods is not None and len(match.periods) > 0:
-        return True
-    return False
-
-
 def get_max_matchday_stats(matches: list[LeagueMatch], division: LeagueDivision):
     matches_div = [m for m in matches if m.leagueDivisionId == division.id]
     md_not_played = [m.matchday for m in matches_div if not is_match_played(m)]
@@ -192,9 +181,33 @@ def download_stats(df: pd.DataFrame):
     return buffer
 
 
-def display_stats(statsheets: list[PlayerStatSheet]):
+def treat_stat(stat: pl.Expr, normalized: bool, gametime: pl.Expr):
+    if normalized:
+        return stat / (gametime / (14 * 60))
+    return stat
+
+
+def display_options_stats():
+    col1, col2 = st.columns(2)
+    normalize_stats = col1.checkbox("Normalize stats per 14mn ?", value=False)
+    filter_players_time = col2.checkbox("Hide players with < 14mn ?")
+    return normalize_stats, filter_players_time
+
+
+def display_stat(v):
+    if isinstance(v, int):
+        return f"{v}"
+    return f"{v:.2f}"
+
+
+def display_stats(
+    statsheets: list[PlayerStatSheet],
+    normalized: bool,
+    filter_players: bool,
+):
     df_json = [
-        {"player": ps.player.dict(), "stats": ps.stats.dict()} for ps in statsheets
+        {"player": ps.player.dict(), "stats": ps.stats.dict(), "cs": ps.cs}
+        for ps in statsheets
     ]
     df_pd = pd.json_normalize(df_json)
     df = pl.DataFrame(df_pd)
@@ -203,26 +216,95 @@ def display_stats(statsheets: list[PlayerStatSheet]):
             pl.col("player.name"),
             pl.col("stats.gamePosition").apply(lambda g: GamePosition(g).name),
             pl.col("stats.gametime").floor().cast(pl.Int64),
-            pl.col("stats.goals"),
-            pl.col("stats.assists"),
-            pl.col("stats.saves"),
-            pl.col("stats.ownGoals"),
-            pl.col("stats.passesAttempted"),
+            treat_stat(
+                pl.col("stats.goals"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.assists"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("cs"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.saves"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.ownGoals"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.passesAttempted"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ).alias("passes"),
             (pl.col("stats.passesSuccessful") / pl.col("stats.passesAttempted"))
             .apply(lambda percent: f"{100 * percent:.1f}%")
             .alias("stats.passSuccess"),
-            pl.col("stats.shots"),
-            pl.col("stats.shotsTarget"),
-            pl.col("stats.touches"),
-            pl.col("stats.kicks"),
-            pl.col("stats.secondaryAssists").alias("assists_2"),
-            pl.col("stats.tertiaryAssists").alias("assists_3"),
-            pl.col("stats.reboundDribbles").alias("rebounds"),
-            pl.col("stats.duels"),
-            pl.col("stats.interceptions"),
-            pl.col("stats.clears"),
+            treat_stat(
+                pl.col("stats.shots"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.shotsTarget"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.touches"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.kicks"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.secondaryAssists"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ).alias("assists_2"),
+            treat_stat(
+                pl.col("stats.tertiaryAssists"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ).alias("assists_3"),
+            treat_stat(
+                pl.col("stats.reboundDribbles"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ).alias("rebounds"),
+            treat_stat(
+                pl.col("stats.duels"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.interceptions"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
+            treat_stat(
+                pl.col("stats.clears"),
+                normalized,
+                pl.col("stats.gametime").floor().cast(pl.Int64),
+            ),
             pl.col("stats.averagePosX"),
         ]
+    ).filter(
+        pl.when(filter_players)
+        .then(pl.col("stats.gametime") >= 14 * 60)
+        .otherwise(True)
     )
     df = df.to_pandas()
     df.columns = df.columns.str.replace("player.|stats.", "", regex=True)
@@ -231,7 +313,35 @@ def display_stats(statsheets: list[PlayerStatSheet]):
         "Hover on the table and click the full screen icon to see all columns at once.\n\n"
         + "Click on the header to sort by a statistic."
     )
-    st.dataframe(df)
+
+    st.dataframe(
+        (
+            df.style.format(
+                subset=[
+                    "goals",
+                    "assists",
+                    "cs",
+                    "saves",
+                    "ownGoals",
+                    "passes",
+                    "shots",
+                    "shotsTarget",
+                    "touches",
+                    "kicks",
+                    "assists_2",
+                    "assists_3",
+                    "rebounds",
+                    "duels",
+                    "interceptions",
+                    "clears",
+                ],
+                formatter=display_stat,
+            ).format(
+                subset=["gametime"],
+                formatter=display_gametime,
+            )
+        )
+    )
     st.download_button(
         label="Download data as Excel",
         data=download_stats(df),
@@ -283,7 +393,8 @@ def main():
         team_name_select,
     )
 
-    display_stats(stats_players)
+    normalize, filter_players = display_options_stats()
+    display_stats(stats_players, normalize, filter_players)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
+import math
 from dataclasses import dataclass
 from enum import IntEnum
 from itertools import groupby
-from typing import Optional
+from statistics import mode
+from typing import Literal, Optional
 
 import streamlit as st
 from prisma.models import LeagueMatch, LeaguePlayer, Period, PlayerStats
@@ -65,6 +67,14 @@ def get_info_match(match: LeagueMatch) -> InfoMatch:
     return InfoMatch(tuple(score), tuple(possession), tuple(action_zone))
 
 
+def is_match_played(match: LeagueMatch):
+    if match.addBlue != 0 or match.addRed != 0 or match.defwin != 0:
+        return True
+    if match.periods is not None and len(match.periods) > 0:
+        return True
+    return False
+
+
 @dataclass
 class PlayerStatSheet:
     player: Optional[LeaguePlayer]
@@ -72,6 +82,7 @@ class PlayerStatSheet:
     team: str
     period_team: int
     stats: PlayerStats
+    cs: int
 
 
 def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
@@ -94,7 +105,9 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                 else:
                     lp = None
                     lp_name = f"{lp_name} (unknown)"
-                stat_sheet = PlayerStatSheet(lp, lp_name, team, 1, ps)
+                stat_sheet = PlayerStatSheet(
+                    lp, lp_name, team, 1, ps, getCS(ps, period, 1)
+                )
                 ps_list.append(stat_sheet)
             elif ps.Player.team == 2:
                 lp_name = pname_period.strip()
@@ -109,7 +122,9 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                 else:
                     lp = None
                     lp_name = f"{lp_name} (unknown)"
-                stat_sheet = PlayerStatSheet(lp, lp_name, team, 2, ps)
+                stat_sheet = PlayerStatSheet(
+                    lp, lp_name, team, 2, ps, getCS(ps, period, 2)
+                )
                 ps_list.append(stat_sheet)
     return ps_list
 
@@ -135,7 +150,7 @@ def sum_sheets(player_sheets: list[PlayerStatSheet]):
         passesSuccessful = sum([pss.stats.passesSuccessful for pss in group])
         touches = sum([pss.stats.touches for pss in group])
         kicks = sum([pss.stats.kicks for pss in group])
-        gamePosition = [pss.stats.gamePosition for pss in group][0]
+        gamePosition = mode([pss.stats.gamePosition for pss in group])
         ownGoals = sum([pss.stats.ownGoals for pss in group])
         goalsScoredTeam = sum([pss.stats.goalsScoredTeam for pss in group])
         goalsConcededTeam = sum([pss.stats.goalsConcededTeam for pss in group])
@@ -146,6 +161,7 @@ def sum_sheets(player_sheets: list[PlayerStatSheet]):
         averagePosX = sum(averagePosXList) / len(averagePosXList)
         averagePosYList = [pss.stats.averagePosY for pss in group]
         averagePosY = sum(averagePosYList) / len(averagePosYList)
+        cleansheet = sum([pss.cs for pss in group])
 
         final_ps = PlayerStats(
             id="",
@@ -182,6 +198,29 @@ def sum_sheets(player_sheets: list[PlayerStatSheet]):
             group[0].team,
             group[0].period_team,
             final_ps,
+            cleansheet,
         )
         final_player_sheets.append(final_pss)
     return final_player_sheets
+
+
+def getCS(stats_player: PlayerStats, period: Period, team: Literal[1, 2]):
+    if (
+        stats_player.gamePosition == GamePosition.GK
+        and stats_player.gametime > 6 * 60 + 30
+    ):
+        if period.scoreRed == 0 and team == 2:
+            return 1
+        if period.scoreBlue == 0 and team == 1:
+            return 1
+    return 0
+
+
+def display_gametime(gametime: float) -> str:
+    minutes = math.floor(gametime / 60)
+    seconds = math.floor(gametime % 60)
+    if minutes == 0:
+        return f"{seconds}s"
+    if seconds == 0:
+        return f"{minutes}m"
+    return f"{minutes}m{seconds}s"

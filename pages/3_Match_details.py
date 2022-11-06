@@ -1,5 +1,3 @@
-import math
-
 import streamlit as st
 from prisma import Prisma
 from prisma.models import (
@@ -16,12 +14,11 @@ from utils.utils import (
     get_statsheet_list,
     hide_streamlit_elements,
     sum_sheets,
+    is_match_played,
+    display_gametime,
 )
 
 hide_streamlit_elements()
-
-# TODO: Filter by matchday like the Add results page
-# TODO: Add CS
 
 
 @st.experimental_memo(ttl=600)
@@ -97,18 +94,24 @@ def select_match(
     matches: list[LeagueMatch],
     teams: list[LeagueTeam],
 ):
+    matchday_options = {
+        div.id: set([m.matchday for m in matches if m.leagueDivisionId == div.id])
+        for div in divisions
+    }
+
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
         div_name_select = st.selectbox(
             "Division",
             [d.name for d in divisions],
         )
+        div_select = [d for d in divisions if d.name == div_name_select][0]
     with col2:
         st.text("")
         st.text("")
         use_team_filter = st.checkbox(
             "Filter team",
-            False,
+            True,
         )
     with col3:
         if use_team_filter:
@@ -121,31 +124,25 @@ def select_match(
             team_options,
         )
 
+    matchdays_options_div = matchday_options[div_select.id]
+    matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
+
     match_list_filter: list[LeagueMatch] = []
     for m in matches:
+        if m.matchday != matchday_select:
+            continue
         if m.LeagueDivision.name != div_name_select:
             continue
-        if len(m.periods) == 0:
+        if not is_match_played(m):
             continue
         if team_select is None or any([md.team.name == team_select for md in m.detail]):
             match_list_filter.append(m)
 
     match_to_edit_title = st.selectbox("Match", [m.title for m in match_list_filter])
-    match_edit_list = [m for m in match_list_filter if m.title == match_to_edit_title]
-    if len(match_edit_list) > 0:
-        return match_edit_list[0]
-
-    return None
-
-
-def display_gametime(gametime: float) -> str:
-    minutes = math.floor(gametime / 60)
-    seconds = math.floor(gametime % 60)
-    if minutes == 0:
-        return f"{seconds}s"
-    if seconds == 0:
-        return f"{minutes}m"
-    return f"{minutes}m{seconds}s"
+    match_list = [m for m in match_list_filter if m.title == match_to_edit_title]
+    if len(match_list) == 0:
+        return None
+    return match_list[0]
 
 
 def display_statsheet(statsheet: PlayerStatSheet):
@@ -167,12 +164,12 @@ def display_statsheet(statsheet: PlayerStatSheet):
 
     col1.metric("Touches", statsheet.stats.touches)
     col2.metric("Kicks", statsheet.stats.kicks)
-    col3.metric("Duels", statsheet.stats.duels)
-    col4.metric("Interceptions", statsheet.stats.interceptions)
+    col3.metric("Saves", statsheet.stats.saves)
+    col4.metric("CS", statsheet.cs)
 
     col1.metric("Shots", statsheet.stats.shots)
     col2.metric("Shorts (T)", statsheet.stats.shotsTarget)
-    col3.metric("Saves", statsheet.stats.saves)
+    col3.metric("Rebounds", statsheet.stats.reboundDribbles)
     col4.metric("Own goals", statsheet.stats.ownGoals)
 
 
@@ -183,6 +180,11 @@ def display_stats_general(match: LeagueMatch):
     st.write(
         f"## {detail_1.team.name} {info_match.score[0]}-{info_match.score[1]} {detail_2.team.name}"
     )
+    if match.replayURL != "":
+        st.write(f"Replay link: {match.replayURL}")
+    else:
+        st.write("No replay link available")
+
     poss_1 = info_match.possession[0] / (sum(info_match.possession))
     poss_2 = 1 - poss_1
     st.text(f"Possession: {100 * poss_1:.1f}% - {100 * poss_2:.1f}%")
