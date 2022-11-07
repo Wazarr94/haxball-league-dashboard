@@ -38,7 +38,7 @@ def main():
     st.write("#### Welcome to the BFF dashboard")
 
     authenticator = init_login()
-    authenticator.login("Login", "main")
+    authenticator.login("Admin login", "main")
 
     if st.session_state["authentication_status"]:
         st.write(f'Connected as *{st.session_state["name"]}*')
