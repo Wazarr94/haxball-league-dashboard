@@ -2,6 +2,7 @@ import os
 
 import streamlit as st
 from prisma import Prisma
+from prisma.models import LeagueDivision
 
 
 @st.experimental_singleton
@@ -53,7 +54,7 @@ def get_matches(_db: Prisma):
 
 
 @st.experimental_singleton
-def get_divisions(_db: Prisma):
+def get_divisions(_db: Prisma) -> list[LeagueDivision]:
     divisions = _db.leaguedivision.find_many(
         order={"id": "asc"},
     )

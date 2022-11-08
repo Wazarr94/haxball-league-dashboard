@@ -26,6 +26,10 @@ def hide_streamlit_elements() -> st._DeltaGenerator:
     return st.markdown(hide_st_style, unsafe_allow_html=True)
 
 
+def get_unique_order(lst: list):
+    return list(dict.fromkeys(lst))
+
+
 @dataclass
 class InfoMatch:
     score: tuple

@@ -7,7 +7,13 @@ from prisma.models import (
     LeagueTeam,
 )
 
-from utils.data import get_divisions, get_matches, get_players, get_teams
+from utils.data import (
+    get_divisions,
+    get_matches,
+    get_players,
+    get_teams,
+    init_connection,
+)
 from utils.utils import (
     GamePosition,
     PlayerStatSheet,
@@ -15,7 +21,6 @@ from utils.utils import (
     get_statsheet_list,
     hide_streamlit_elements,
     sum_sheets,
-    is_match_played,
     display_gametime,
 )
 
@@ -36,28 +41,20 @@ def select_match(
 
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
-        div_name_select = st.selectbox(
-            "Division",
-            [d.name for d in divisions],
-        )
+        div_name_list = [d.name for d in divisions]
+        div_name_select = st.selectbox("Division", div_name_list)
         div_select = [d for d in divisions if d.name == div_name_select][0]
     with col2:
         st.text("")
         st.text("")
-        use_team_filter = st.checkbox(
-            "Filter team",
-            True,
-        )
+        use_team_filter = st.checkbox("Filter team", False)
     with col3:
         if use_team_filter:
             team_options = [t.name for t in teams if t.division.name in div_name_select]
         else:
             team_options = []
         team_options.sort()
-        team_select = st.selectbox(
-            "Team",
-            team_options,
-        )
+        team_select = st.selectbox("Team", team_options)
 
     matchdays_options_div = matchday_options[div_select.id]
     matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
@@ -157,7 +154,9 @@ def display_stats_teams(match: LeagueMatch, players: list[LeaguePlayer]):
 
 def main():
     if "db" not in st.session_state:
-        return
+        db = init_connection()
+        st.session_state["db"] = db
+
     db: Prisma = st.session_state["db"]
 
     matches_list = get_matches(db)

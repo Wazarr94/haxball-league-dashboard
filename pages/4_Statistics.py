@@ -1,4 +1,4 @@
-from io import BytesIO
+import io
 from typing import Optional
 
 import pandas as pd
@@ -7,12 +7,19 @@ import streamlit as st
 from prisma import Prisma
 from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
 
-from utils.data import get_divisions, get_matches, get_players, get_teams
+from utils.data import (
+    get_divisions,
+    get_matches,
+    get_players,
+    get_teams,
+    init_connection,
+)
 from utils.utils import (
     GamePosition,
     PlayerStatSheet,
     get_statsheet_list,
     hide_streamlit_elements,
+    get_unique_order,
     sum_sheets,
     is_match_played,
     display_gametime,
@@ -24,46 +31,51 @@ hide_streamlit_elements()
 def get_div_team_select(divisions: list[LeagueDivision], teams: list[LeagueTeam]):
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
-        div_name_select = st.selectbox(
-            "Division",
-            [d.name for d in divisions],
-        )
+        div_name_list = [d.name for d in divisions]
+        div_name_select = st.selectbox("Division", div_name_list)
         div_select = [d for d in divisions if d.name == div_name_select][0]
     with col2:
         st.text("")
         st.text("")
-        use_team_filter = st.checkbox(
-            "Filter team",
-            False,
-        )
+        use_team_filter = st.checkbox("Filter team", False)
     with col3:
         if use_team_filter:
             team_options = [t.name for t in teams if t.division.name in div_name_select]
         else:
             team_options = []
         team_options.sort()
-        team_name_select = st.selectbox(
-            "Team",
-            team_options,
-        )
+        team_name_select = st.selectbox("Team", team_options)
     return div_select, team_name_select
 
 
 def get_max_matchday_stats(matches: list[LeagueMatch], division: LeagueDivision):
     matches_div = [m for m in matches if m.leagueDivisionId == division.id]
-    md_not_played = [m.matchday for m in matches_div if not is_match_played(m)]
-    if len(md_not_played) == 0:
-        return max([m.matchday for m in matches_div])
-    return max(1, min(set(md_not_played)) - 1)
+    md_list = get_unique_order([m.matchday for m in matches_div])
+    md_dict = {v: i for i, v in enumerate(md_list)}
+    md_val_not_played = [
+        md_dict[m.matchday] for m in matches_div if not is_match_played(m)
+    ]
+    if len(md_val_not_played) == 0:
+        return max(md_dict.values())
+    min_md_val_no_play = min(set(md_val_not_played))
+    return max(1, min_md_val_no_play - 1)
 
 
 def filter_matches(
     matches: list[LeagueMatch],
     team_name: Optional[str],
     division: LeagueDivision,
+    matchdays_select: tuple[str],
 ):
+    md_list = get_unique_order([m.matchday for m in matches])
+    md_dict = {v: i for i, v in enumerate(md_list)}
     match_list_filter = []
     for m in matches:
+        if (
+            md_dict[m.matchday] < matchdays_select[0]
+            or md_dict[m.matchday] > matchdays_select[1]
+        ):
+            continue
         if m.LeagueDivision.name != division:
             continue
         if team_name is None or any([md.team.name == team_name for md in m.detail]):
@@ -105,7 +117,7 @@ def get_stats(
 
 
 def download_stats(df: pd.DataFrame):
-    buffer = BytesIO()
+    buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
         df.to_excel(writer, sheet_name="Sheet1", index=False)
     return buffer
@@ -130,6 +142,39 @@ def display_stat(v):
     return f"{v:.2f}"
 
 
+def style_table(styler):
+    styler.format(
+        subset=[
+            "goals",
+            "assists",
+            "cs",
+            "saves",
+            "ownGoals",
+            "passes",
+            "shots",
+            "shotsTarget",
+            "touches",
+            "kicks",
+            "assists_2",
+            "assists_3",
+            "rebounds",
+            "duels",
+            "interceptions",
+            "clears",
+        ],
+        formatter=display_stat,
+    )
+    styler.format(
+        subset=["gametime"],
+        formatter=display_gametime,
+    )
+    styler.format(
+        subset=["gamePosition"],
+        formatter=lambda g: GamePosition(g).name,
+    )
+    return styler
+
+
 def display_stats(
     statsheets: list[PlayerStatSheet],
     normalized: bool,
@@ -144,7 +189,7 @@ def display_stats(
     df = df.select(
         [
             pl.col("player.name"),
-            pl.col("stats.gamePosition").apply(lambda g: GamePosition(g).name),
+            pl.col("stats.gamePosition"),
             pl.col("stats.gametime").floor().cast(pl.Int64),
             treat_stat(
                 pl.col("stats.goals"),
@@ -244,34 +289,7 @@ def display_stats(
         + "Click on the header to sort by a statistic."
     )
 
-    st.dataframe(
-        (
-            df.style.format(
-                subset=[
-                    "goals",
-                    "assists",
-                    "cs",
-                    "saves",
-                    "ownGoals",
-                    "passes",
-                    "shots",
-                    "shotsTarget",
-                    "touches",
-                    "kicks",
-                    "assists_2",
-                    "assists_3",
-                    "rebounds",
-                    "duels",
-                    "interceptions",
-                    "clears",
-                ],
-                formatter=display_stat,
-            ).format(
-                subset=["gametime"],
-                formatter=display_gametime,
-            )
-        )
-    )
+    st.dataframe(df.set_index("name").style.pipe(style_table))
     st.download_button(
         label="Download data as Excel",
         data=download_stats(df),
@@ -282,7 +300,9 @@ def display_stats(
 
 def main():
     if "db" not in st.session_state:
-        return
+        db = init_connection()
+        st.session_state["db"] = db
+
     db: Prisma = st.session_state["db"]
 
     matches_list = get_matches(db)
@@ -290,11 +310,31 @@ def main():
     divisions_list = get_divisions(db)
     players_list = get_players(db)
 
+    matchday_options = {
+        div.id: get_unique_order(
+            [m.matchday for m in matches_list if m.leagueDivisionId == div.id]
+        )
+        for div in divisions_list
+    }
+
     st.write("# Season 9 playoff statistics")
 
     div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
 
-    match_list_filter = filter_matches(matches_list, team_name_select, div_select.name)
+    matchdays_options_div = matchday_options[div_select.id]
+    matchdays_values = range(len(matchdays_options_div))
+    matchday_max = get_max_matchday_stats(matches_list, div_select)
+
+    matchdays_select = st.select_slider(
+        "Matchdays",
+        options=matchdays_values,
+        value=(0, matchday_max),
+        format_func=(lambda v: matchdays_options_div[v]),
+    )
+
+    match_list_filter = filter_matches(
+        matches_list, team_name_select, div_select.name, matchdays_select
+    )
 
     stats_players = get_stats(
         match_list_filter,
