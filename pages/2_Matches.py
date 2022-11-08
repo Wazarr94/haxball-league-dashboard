@@ -15,17 +15,17 @@ hide_streamlit_elements()
 
 def filter_matches(
     matches: list[LeagueMatch],
-    team: Optional[LeagueTeam],
-    division: LeagueDivision,
+    team_name: Optional[str],
+    division_name: str,
     matchday_select: Optional[str],
 ):
     match_list_filter = []
     for m in matches:
         if matchday_select is not None and m.matchday != matchday_select:
             continue
-        if m.LeagueDivision.name != division:
+        if m.LeagueDivision.name != division_name:
             continue
-        if team is None or any([md.team.name == team for md in m.detail]):
+        if team_name is None or any([md.team.name == team_name for md in m.detail]):
             match_list_filter.append(m)
     return match_list_filter
 
@@ -68,16 +68,12 @@ def main():
         for div in divisions_list
     }
 
-    pagination_division = {
-        div.id: len(
-            [
-                m
-                for m in matches_list
-                if m.matchday == 1 and div.id == m.leagueDivisionId
-            ]
-        )
-        for div in divisions_list
-    }
+    pagination_division = {}
+    for div in divisions_list:
+        first_md: str = matchday_options[div.id][0]
+        matches_div = [m for m in matches_list if div.id == m.leagueDivisionId]
+        pagination_div = len([m for m in matches_div if m.matchday == first_md])
+        pagination_division[div.id] = pagination_div
 
     pagination_team = {
         div.id: len(matchday_options[div.id]) / 2 for div in divisions_list
@@ -87,18 +83,12 @@ def main():
 
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
-        div_name_select = st.selectbox(
-            "Division",
-            [d.name for d in divisions_list],
-        )
+        div_name_select = st.selectbox("Division", [d.name for d in divisions_list])
         div_select = [d for d in divisions_list if d.name == div_name_select][0]
     with col2:
         st.text("")
         st.text("")
-        use_team_filter = st.checkbox(
-            "Filter team",
-            False,
-        )
+        use_team_filter = st.checkbox("Filter team", False)
     with col3:
         if use_team_filter:
             team_options = [
@@ -107,10 +97,7 @@ def main():
         else:
             team_options = []
         team_options.sort()
-        team_select = st.selectbox(
-            "Team",
-            team_options,
-        )
+        team_select = st.selectbox("Team", team_options)
 
     col1, col2 = st.columns([2, 8])
     with col1:
@@ -153,11 +140,7 @@ def main():
     gb.configure_grid_options()
     grid_options = gb.build()
 
-    AgGrid(
-        df,
-        gridOptions=grid_options,
-        fit_columns_on_grid_load=True,
-    )
+    AgGrid(df, gridOptions=grid_options, fit_columns_on_grid_load=True)
 
 
 if __name__ == "__main__":

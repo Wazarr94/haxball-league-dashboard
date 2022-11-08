@@ -123,7 +123,7 @@ def process_edit(
     replay_url: str,
 ):
 
-    detail_1 = db.leaguematchdetail.update(
+    db.leaguematchdetail.update(
         where={
             "leagueMatchId_leagueTeamId": {
                 "leagueMatchId": match.id,
@@ -133,7 +133,7 @@ def process_edit(
         data={"startsRed": first_team_starts},
     )
 
-    detail_2 = db.leaguematchdetail.update(
+    db.leaguematchdetail.update(
         where={
             "leagueMatchId_leagueTeamId": {
                 "leagueMatchId": match.id,
@@ -151,7 +151,7 @@ def process_edit(
     if period3_id != "":
         periods.append({"id": int(period3_id)})
 
-    match_edited = db.leaguematch.update(
+    db.leaguematch.update(
         where={
             "id": match.id,
         },
@@ -200,15 +200,19 @@ def main():
         defwin = radio_defwin(match_to_edit)
         st.write("### Score adjustment")
         col1, col2 = st.columns(2)
+        teams_match = [
+            match_to_edit.detail[0].team.name,
+            match_to_edit.detail[1].team.name,
+        ]
         with col1:
             red_score_adjustment = st.number_input(
-                "Red",
+                teams_match[0],
                 value=match_to_edit.addRed,
                 step=1,
             )
         with col2:
             blue_score_adjustment = st.number_input(
-                "Blue",
+                teams_match[1],
                 value=match_to_edit.addBlue,
                 step=1,
             )
