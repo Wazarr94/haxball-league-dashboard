@@ -2,7 +2,7 @@ import streamlit as st
 from prisma import Prisma
 from prisma.models import LeagueDivision, LeagueTeam
 
-from utils.data import get_divisions, get_teams
+from utils.data import get_divisions, get_teams, init_connection
 from utils.utils import hide_streamlit_elements
 
 hide_streamlit_elements()
@@ -54,7 +54,9 @@ def display_former_players(team: LeagueTeam):
 
 def main():
     if "db" not in st.session_state:
-        return
+        db = init_connection()
+        st.session_state["db"] = db
+
     db: Prisma = st.session_state["db"]
 
     teams_list = get_teams(db)

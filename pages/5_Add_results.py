@@ -3,7 +3,13 @@ from prisma import Prisma
 from prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
 from prisma.types import PeriodWhereUniqueInput
 
-from utils.data import get_divisions, get_matches, get_periods, get_teams
+from utils.data import (
+    get_divisions,
+    get_matches,
+    get_periods,
+    get_teams,
+    init_connection,
+)
 from utils.utils import hide_streamlit_elements
 
 hide_streamlit_elements()
@@ -168,7 +174,9 @@ def process_edit(
 
 def main():
     if "db" not in st.session_state:
-        return
+        db = init_connection()
+        st.session_state["db"] = db
+
     db: Prisma = st.session_state["db"]
 
     if not st.session_state["authentication_status"]:

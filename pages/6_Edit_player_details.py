@@ -4,7 +4,7 @@ import streamlit as st
 from prisma import Prisma
 from prisma.models import LeagueDivision, LeaguePlayer, LeagueTeam
 
-from utils.data import get_divisions, get_players, get_teams
+from utils.data import get_divisions, get_players, get_teams, init_connection
 from utils.utils import hide_streamlit_elements
 
 hide_streamlit_elements()
@@ -89,7 +89,9 @@ def process_new_team(
 
 def main():
     if "db" not in st.session_state:
-        return
+        db = init_connection()
+        st.session_state["db"] = db
+
     db: Prisma = st.session_state["db"]
 
     if not st.session_state["authentication_status"]:
