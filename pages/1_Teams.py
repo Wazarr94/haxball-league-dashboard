@@ -1,6 +1,6 @@
 import streamlit as st
 from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueTeam
+from prisma.models import LeagueDivision, LeagueTeam, LeaguePlayer
 
 from utils.data import get_divisions, get_teams, init_connection
 from utils.utils import hide_streamlit_elements
@@ -11,45 +11,34 @@ hide_streamlit_elements()
 def select_team(teams: list[LeagueTeam], divisions: list[LeagueDivision]):
     col1, col2 = st.columns([4, 8])
     with col1:
-        div_select = st.selectbox(
-            "Division",
-            [d.name for d in divisions],
-        )
+        div_select = st.selectbox("Division", [d.name for d in divisions])
     with col2:
         team_options = [t.name for t in teams if t.division.name in div_select]
         team_options.sort()
-        team_select = st.selectbox(
-            "Team",
-            team_options,
-        )
+        team_select = st.selectbox("Team", team_options)
     team_obj = [t for t in teams if t.name == team_select][0]
     return team_obj
+
+
+def display_players(players: list[LeaguePlayer], nb_cols: int = 2) -> None:
+    columns = st.columns(nb_cols)
+    for i, col in enumerate(columns):
+        for player in players[i::nb_cols]:
+            col.write(f"- {player.name}")
 
 
 def display_active_players(team: LeagueTeam):
     active_players = [p.player for p in team.players if p.active]
     st.write(f"**Active players ({len(active_players)}/12):**")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        for player in active_players[::2]:
-            st.write(f"- {player.name}")
-    with col2:
-        for player in active_players[1::2]:
-            st.write(f"- {player.name}")
+    display_players(active_players)
 
 
 def display_former_players(team: LeagueTeam):
     former_players = [p.player for p in team.players if not p.active]
     st.write(f"**Former players:**")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        for player in former_players[::2]:
-            st.write(f"- {player.name}")
-    with col2:
-        for player in former_players[1::2]:
-            st.write(f"- {player.name}")
+    display_players(former_players)
 
 
 def main():
