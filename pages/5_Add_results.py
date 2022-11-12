@@ -246,7 +246,7 @@ def main():
             if not can_submit:
                 st.error("Error: Fix the periods id")
             else:
-                matches_list, periods_list = process_edit(
+                process_edit(
                     db,
                     match_to_edit,
                     first_team_starts,

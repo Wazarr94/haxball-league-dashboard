@@ -232,3 +232,9 @@ def display_gametime(gametime: float) -> str:
     if seconds == 0:
         return f"{minutes}m"
     return f"{minutes}m{seconds}s"
+
+
+def display_pass_success(v):
+    if math.isnan(v):
+        return "0.0%"
+    return f"{100 * v:.1f}%"

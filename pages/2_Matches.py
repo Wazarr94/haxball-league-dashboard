@@ -3,7 +3,7 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
+from prisma.models import LeagueMatch
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 

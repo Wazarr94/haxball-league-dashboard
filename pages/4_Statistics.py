@@ -23,6 +23,7 @@ from utils.utils import (
     sum_sheets,
     is_match_played,
     display_gametime,
+    display_pass_success,
 )
 
 hide_streamlit_elements()
@@ -165,6 +166,10 @@ def style_table(styler):
         formatter=display_stat,
     )
     styler.format(
+        subset=["passSuccess"],
+        formatter=display_pass_success,
+    )
+    styler.format(
         subset=["gametime"],
         formatter=display_gametime,
     )
@@ -221,9 +226,9 @@ def display_stats(
                 normalized,
                 pl.col("stats.gametime").floor().cast(pl.Int64),
             ).alias("passes"),
-            (pl.col("stats.passesSuccessful") / pl.col("stats.passesAttempted"))
-            .apply(lambda percent: f"{100 * percent:.1f}%")
-            .alias("stats.passSuccess"),
+            (
+                pl.col("stats.passesSuccessful") / (pl.col("stats.passesAttempted"))
+            ).alias("stats.passSuccess"),
             treat_stat(
                 pl.col("stats.shots"),
                 normalized,
