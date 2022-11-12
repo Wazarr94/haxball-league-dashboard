@@ -131,16 +131,29 @@ def treat_stat(stat: pl.Expr, normalized: bool, gametime: pl.Expr):
 
 
 def display_options_stats():
-    col1, col2 = st.columns(2)
-    normalize_stats = col1.checkbox("Normalize stats per 14mn ?", value=False)
-    filter_players_time = col2.checkbox("Hide players with < 14mn ?")
-    col1, _ = st.columns([1, 4])
-    positions_choose = [*range(1, 5)]
-    filter_position = col1.selectbox(
-        "Filter by position",
-        positions_choose,
-        format_func=lambda x: GamePosition(x).name,
-    )
+    col1, col2, col3, col4 = st.columns([3, 3, 2, 5])
+    with col1:
+        st.write("")
+        st.write("")
+        normalize_stats = st.checkbox("Normalize stats per 14mn ?", value=False)
+    with col2:
+        st.write("")
+        st.write("")
+        filter_players_time = st.checkbox("Hide players with < 14mn ?")
+    with col3:
+        st.write("")
+        st.write("")
+        filter_position_check = st.checkbox("Filter position", False)
+    with col4:
+        if filter_position_check:
+            positions_choose = [*range(1, 5)]
+        else:
+            positions_choose = []
+        filter_position = st.selectbox(
+            "Position",
+            positions_choose,
+            format_func=lambda x: GamePosition(x).name,
+        )
     return normalize_stats, filter_players_time, filter_position
 
 
