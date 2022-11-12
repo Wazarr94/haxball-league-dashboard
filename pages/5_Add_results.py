@@ -179,7 +179,10 @@ def main():
 
     db: Prisma = st.session_state["db"]
 
-    if not st.session_state["authentication_status"]:
+    if (
+        "authentication_status" not in st.session_state
+        or not st.session_state["authentication_status"]
+    ):
         st.error("You are not allowed to see this page")
         return
 
