@@ -1,7 +1,25 @@
 import os
+import subprocess
+
+
+def generate_prisma_client():
+    print(f"GENERATING PRISMA CLIENT")
+    subprocess.call(["prisma", "generate"])
+    print(f"GENERATED PRISMA CLIENT")
+
+
+generate_prisma_client()
+try:
+    from prisma import Prisma
+except RuntimeError:
+    from prisma_cleanup import cleanup
+
+    cleanup()
+    print(f"GOT RUNTIME ERROR")
+    generate_prisma_client()
+    from prisma import Prisma
 
 import streamlit as st
-from prisma import Prisma
 from prisma.models import LeagueDivision
 
 
