@@ -16,8 +16,10 @@ def select_team(teams: list[LeagueTeam], divisions: list[LeagueDivision]):
         team_options = [t.name for t in teams if t.division.name in div_select]
         team_options.sort()
         team_select = st.selectbox("Team", team_options)
-    team_obj = [t for t in teams if t.name == team_select][0]
-    return team_obj
+    team_list = [t for t in teams if t.name == team_select]
+    if len(team_list) == 0:
+        return None
+    return team_list[0]
 
 
 def display_players(players: list[LeaguePlayer], nb_cols: int = 2) -> None:
@@ -51,7 +53,7 @@ def main():
     teams_list = get_teams(db)
     divisions_list = get_divisions(db)
 
-    st.write("# Season 9 playoff teams")
+    st.write("# Nations Cup teams")
 
     team = select_team(teams_list, divisions_list)
     if team is None:

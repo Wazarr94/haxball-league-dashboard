@@ -59,7 +59,7 @@ def get_max_matchday_stats(matches: list[LeagueMatch], division: LeagueDivision)
     if len(md_val_not_played) == 0:
         return max(md_dict.values())
     min_md_val_no_play = min(set(md_val_not_played))
-    return max(1, min_md_val_no_play - 1)
+    return max(0, min_md_val_no_play - 1)
 
 
 def filter_matches(
@@ -212,6 +212,8 @@ def display_stats(
     ]
     df_pd = pd.json_normalize(df_json)
     df = pl.DataFrame(df_pd)
+    if len(df) == 0:
+        return
     df = (
         df.select(
             [
@@ -351,7 +353,7 @@ def main():
         for div in divisions_list
     }
 
-    st.write("# Season 9 playoff statistics")
+    st.write("# Nations Cup statistics")
 
     div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
 

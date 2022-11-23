@@ -35,14 +35,20 @@ def build_match_db(match_list: list[LeagueMatch]):
     for m in match_list:
         info_match = get_info_match(m)
         score = f"{info_match.score[0]}-{info_match.score[1]}"
+        team1 = ""
+        if len(m.detail) > 0:
+            team1 = m.detail[0].team.name
+        team2 = ""
+        if len(m.detail) > 1:
+            team2 = m.detail[1].team.name
         if info_match.score[0] == -1:
             score = ""
         obj = {
             "division": m.LeagueDivision.name,
             "matchday": m.matchday,
             "date": m.date,
-            "team1": m.detail[0].team.name,
-            "team2": m.detail[1].team.name,
+            "team1": team1,
+            "team2": team2,
             "score": score,
         }
         object_list.append(obj)
@@ -79,7 +85,7 @@ def main():
         div.id: len(matchday_options[div.id]) / 2 for div in divisions_list
     }
 
-    st.write("# Season 9 playoff matches")
+    st.write("# Nations Cup matches")
 
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:

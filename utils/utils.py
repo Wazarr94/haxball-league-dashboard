@@ -90,6 +90,8 @@ class PlayerStatSheet:
 
 
 def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
+    if len(match.detail) < 2:
+        return []
     detail_1, detail_2 = match.detail[0], match.detail[1]
     ps_list: list[PlayerStatSheet] = []
     for i, period in enumerate(match.periods):
