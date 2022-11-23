@@ -80,7 +80,7 @@ def process_new_player(db: Prisma, player_name: str, team: LeagueTeam):
 
 def process_new_nick(db: Prisma, player: LeaguePlayer, nick: str):
     nicks_player = [n for n in player.nicks]
-    nicks_player.append(nick)
+    nicks_player.append(nick.strip())
 
     db.leagueplayer.update(
         where={"id": player.id},
