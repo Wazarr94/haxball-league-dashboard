@@ -1,7 +1,12 @@
+from typing import Optional
+
 import streamlit as st
 from prisma import Prisma
 from prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
-from prisma.types import PeriodWhereUniqueInput
+from prisma.types import (
+    LeagueMatchDetailCreateWithoutRelationsInput,
+    PeriodWhereUniqueInput,
+)
 
 from utils.data import (
     get_divisions,
@@ -68,6 +73,102 @@ def select_match(
     if len(match_list) == 0:
         return None
     return match_list[0]
+
+
+def select_update_teams(teams: list[LeagueTeam], match: LeagueMatch):
+    col1, _, col2 = st.columns([7, 1, 8])
+    team_choices = [t.name for t in teams if t.division.id == match.leagueDivisionId]
+    with col1:
+        if len(match.detail) > 0:
+            team1_select = st.selectbox(
+                "Team 1",
+                team_choices,
+                index=team_choices.index(match.detail[0].team.name),
+            )
+        else:
+            team1_select = st.selectbox(
+                "Team 1",
+                [None] + team_choices,
+            )
+    with col2:
+        if len(match.detail) > 1:
+            team2_select = st.selectbox(
+                "Team 2",
+                team_choices,
+                index=team_choices.index(match.detail[1].team.name),
+            )
+        else:
+            team2_select = st.selectbox(
+                "Team 2",
+                [None] + [t for t in team_choices if t != team1_select],
+            )
+    team_list_1 = [t for t in teams if t.name == team1_select]
+    if len(team_list_1) == 0:
+        team1 = None
+    else:
+        team1 = team_list_1[0]
+    team_list_2 = [t for t in teams if t.name == team2_select]
+    if len(team_list_2) == 0:
+        team2 = None
+    else:
+        team2 = team_list_2[0]
+    return team1, team2
+
+
+def get_title(match: LeagueMatch, teams: tuple[Optional[LeagueTeam]]):
+    md: str = match.matchday
+    game_nb = match.gameNumber
+    t1 = teams[0].name if teams[0] is not None else "nan"
+    t2 = teams[1].name if teams[1] is not None else "nan"
+    if md.isdigit():
+        title = f"MD {md} - {t1} vs {t2}"
+    else:
+        if game_nb > 1:
+            title = f"{md} {game_nb} - {t1} vs {t2}"
+        else:
+            title = f"{md} - {t1} vs {t2}"
+    return title
+
+
+def process_update_teams(
+    db: Prisma, teams: tuple[Optional[LeagueTeam]], match: LeagueMatch
+):
+    updated = False
+    data_list: list[LeagueMatchDetailCreateWithoutRelationsInput] = []
+    if teams[0] is not None:
+        updated = True
+        data_point_1: LeagueMatchDetailCreateWithoutRelationsInput = {
+            "leagueMatchId": match.id,
+            "leagueTeamId": teams[0].id,
+            "startsRed": True,
+            "home": True,
+        }
+        data_list.append(data_point_1)
+    if teams[1] is not None:
+        updated = True
+        data_point_2: LeagueMatchDetailCreateWithoutRelationsInput = {
+            "leagueMatchId": match.id,
+            "leagueTeamId": teams[1].id,
+            "startsRed": False,
+            "home": False,
+        }
+        data_list.append(data_point_2)
+
+    matches_details = db.leaguematchdetail.create_many(data=data_list)
+
+    if updated:
+        match_title = get_title(match, teams)
+        db.leaguematch.update(
+            where={
+                "id": match.id,
+            },
+            data={
+                "title": match_title,
+            },
+        )
+
+    get_matches.clear()
+    return get_matches(db)
 
 
 def get_idx_starting_red_team(match: LeagueMatch):
@@ -198,7 +299,19 @@ def main():
         return
 
     with st.container():
+        st.write("### Teams")
+
+        teams_update = select_update_teams(teams_list, match_to_edit)
+        btn_teams = st.button("Update teams")
+        if btn_teams:
+            process_update_teams(db, teams_update, match_to_edit)
+
         st.write("### General")
+
+        if len(match_to_edit.detail) < 2:
+            st.error("Please fill the teams that played the match")
+            return
+
         first_team_starts = radio_team_starts(match_to_edit)
         defwin = radio_defwin(match_to_edit)
         st.write("### Score adjustment")

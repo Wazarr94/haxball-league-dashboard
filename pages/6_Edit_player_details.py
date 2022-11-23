@@ -60,7 +60,22 @@ def select_new_team(teams: list[LeagueTeam]):
 
 
 def process_new_player(db: Prisma, player_name: str, team: LeagueTeam):
-    return None
+    player = db.leagueplayer.create(
+        data={
+            "name": player_name,
+            "nicks": [player_name],
+        }
+    )
+    player_team_relation = db.leagueplayerteams.create(
+        data={
+            "active": True,
+            "leaguePlayerId": player.id,
+            "leagueTeamId": team.id,
+        }
+    )
+
+    get_players.clear()
+    return get_players(db)
 
 
 def process_new_nick(db: Prisma, player: LeaguePlayer, nick: str):
@@ -112,7 +127,8 @@ def main():
     st.write("## Add new player")
     player_name = st.text_input("Player name", "")
     player_submitted = st.button("Add player", disabled=(team is None))
-    st.warning("Not implemented")
+    if team is None:
+        st.warning("Cannot add player without the team filter")
     if player_submitted:
         players_list = process_new_player(db, player_name, team)
 
