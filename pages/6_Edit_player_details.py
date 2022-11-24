@@ -66,7 +66,7 @@ def process_new_player(db: Prisma, player_name: str, team: LeagueTeam):
             "nicks": [player_name],
         }
     )
-    player_team_relation = db.leagueplayerteams.create(
+    db.leagueplayerteams.create(
         data={
             "active": True,
             "leaguePlayerId": player.id,
@@ -81,6 +81,21 @@ def process_new_player(db: Prisma, player_name: str, team: LeagueTeam):
 def process_new_nick(db: Prisma, player: LeaguePlayer, nick: str):
     nicks_player = [n for n in player.nicks]
     nicks_player.append(nick.strip())
+
+    db.leagueplayer.update(
+        where={"id": player.id},
+        data={
+            "nicks": {"set": nicks_player},
+        },
+    )
+
+    get_players.clear()
+    return get_players(db)
+
+
+def process_delete_nick(db: Prisma, player: LeaguePlayer, nick: str):
+    nicks_player = [n for n in player.nicks]
+    nicks_player.remove(nick)
 
     db.leagueplayer.update(
         where={"id": player.id},
@@ -141,11 +156,14 @@ def main():
 
     st.write("#### Nicks")
     for nick in player.nicks:
-        st.write(f"- {nick}")
+        col1, col2 = st.columns([9, 1])
+        col1.write(f"- {nick}")
+        players_list = col2.button("X", key=nick, on_click=process_delete_nick, args=[db, player, nick])
+    
     new_nick = st.text_input("New nick", "")
     nick_submitted = st.button("Add nick")
     if nick_submitted:
-        process_new_nick(db, player, new_nick)
+        players_list = process_new_nick(db, player, new_nick)
 
     st.write("#### Team")
     new_team = st.text_input("New team", "")
