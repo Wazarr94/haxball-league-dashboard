@@ -55,8 +55,21 @@ def select_player(team: Optional[LeagueTeam], players: list[LeaguePlayer]):
     return player_obj
 
 
-def select_new_team(teams: list[LeagueTeam]):
-    return None
+def get_current_team(player: LeaguePlayer):
+    current_team_list = [t for t in player.teams if t.active]
+    if len(current_team_list) == 0:
+        current_team = None
+    else:
+        current_team = current_team_list[0]
+    return current_team
+
+
+def select_new_team(player: LeaguePlayer, teams: list[LeagueTeam]):
+    current_team = get_current_team(player)
+    team_options = [None] + [t for t in teams if t.id != current_team.leagueTeamId]
+    new_team = st.selectbox("New team", team_options, format_func=lambda t: None if t is None else t.name)
+    
+    return new_team
 
 
 def process_new_player(db: Prisma, player_name: str, team: LeagueTeam):
@@ -112,9 +125,33 @@ def process_new_team(
     db: Prisma,
     player: LeaguePlayer,
     new_team: Optional[LeagueTeam],
-    current_team: Optional[LeagueTeam],
 ):
-    return None
+    current_team = get_current_team(player)
+    
+    if current_team is not None:
+        db.leagueplayerteams.upsert(
+            where={
+                "leaguePlayerId": player.id,
+                "leagueTeamId": current_team.id,
+            },
+            data={
+                "active": False
+            }
+        )
+    
+    if new_team is not None:
+        db.leagueplayerteams.upsert(
+            where={
+                "leaguePlayerId": player.id,
+                "leagueTeamId": new_team.id,
+            },
+            data={
+                "active": True
+            }
+        )
+
+    get_teams.clear()
+    return get_teams(db)
 
 
 def main():
@@ -166,11 +203,10 @@ def main():
         players_list = process_new_nick(db, player, new_nick)
 
     st.write("#### Team")
-    new_team = st.text_input("New team", "")
+    new_team = select_new_team(player, teams_list)
     team_submitted = st.button("Change team")
-    st.warning("Not implemented")
     if team_submitted:
-        process_new_team(db, player, new_team, team)
+        teams_list = process_new_team(db, player, new_team)
 
 
 if __name__ == "__main__":
