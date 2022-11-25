@@ -6,6 +6,7 @@ from prisma.models import (
     LeaguePlayer,
     LeagueTeam,
 )
+import copy
 
 from utils.data import (
     get_divisions,
@@ -105,6 +106,27 @@ def display_statsheet(statsheet: PlayerStatSheet):
     col4.metric("Own goals", statsheet.stats.ownGoals)
 
 
+def format_period_filter(v: int):
+    if v == 0:
+        return "All periods"
+    return f"Period {v}"
+
+
+def filter_periods(match: LeagueMatch):
+    match_copy = copy.deepcopy(match)
+    period_select = st.selectbox(
+        "Select periods", 
+        list(range(len(match.periods) + 1)),
+        format_func=format_period_filter
+    )
+    
+    if period_select == 0:
+        return match_copy
+    
+    match_copy.periods = [match.periods[period_select - 1]]
+    return match_copy
+
+
 def display_stats_general(match: LeagueMatch):
     detail_1, detail_2 = match.detail[0], match.detail[1]
     info_match = get_info_match(match)
@@ -170,8 +192,9 @@ def main():
     if match_play is None:
         return
 
-    display_stats_general(match_play)
-    display_stats_teams(match_play, players_list)
+    match_periods = filter_periods(match_play)
+    display_stats_general(match_periods)
+    display_stats_teams(match_periods, players_list)
 
 
 if __name__ == "__main__":
