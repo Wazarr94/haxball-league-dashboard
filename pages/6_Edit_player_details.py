@@ -56,7 +56,7 @@ def select_player(team: Optional[LeagueTeam], players: list[LeaguePlayer]):
 
 
 def get_current_team(player: LeaguePlayer):
-    current_team_list = [t for t in player.teams if t.active]
+    current_team_list = [tr.team for tr in player.teams if tr.active]
     if len(current_team_list) == 0:
         current_team = None
     else:
@@ -64,9 +64,14 @@ def get_current_team(player: LeaguePlayer):
     return current_team
 
 
-def select_new_team(player: LeaguePlayer, teams: list[LeagueTeam]):
-    current_team = get_current_team(player)
-    team_options = [None] + [t for t in teams if t.id != current_team.leagueTeamId]
+def select_new_team(
+    player: LeaguePlayer,
+    current_team: Optional[LeagueTeam],
+    teams: list[LeagueTeam],
+):
+    if current_team is None:
+        current_team = get_current_team(player)
+    team_options = [None] + [t for t in teams if t.id != current_team.id]
     new_team = st.selectbox(
         "New team",
         team_options,
@@ -210,7 +215,7 @@ def main():
         players_list = process_new_nick(db, player, new_nick)
 
     st.write("#### Team")
-    new_team = select_new_team(player, teams_list)
+    new_team = select_new_team(player, team, teams_list)
     team_submitted = st.button("Change team")
     if team_submitted:
         teams_list = process_new_team(db, player, team, new_team)
