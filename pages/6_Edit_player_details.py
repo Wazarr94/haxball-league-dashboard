@@ -71,7 +71,9 @@ def select_new_team(
 ):
     if current_team is None:
         current_team = get_current_team(player)
-    team_options = [None] + [t for t in teams if t.id != current_team.id]
+    team_options = [None] + [
+        t for t in teams if current_team is None or t.id != current_team.id
+    ]
     new_team = st.selectbox(
         "New team",
         team_options,
@@ -97,7 +99,8 @@ def process_new_player(db: Prisma, player_name: str, team: LeagueTeam):
     )
 
     get_players.clear()
-    return get_players(db)
+    get_teams.clear()
+    return get_players(db), get_teams(db)
 
 
 def process_new_nick(db: Prisma, player: LeaguePlayer, nick: str):
@@ -140,10 +143,12 @@ def process_new_team(
         current_team = get_current_team(player)
 
     if current_team is not None:
-        db.leagueplayerteams.upsert(
+        db.leagueplayerteams.update(
             where={
-                "leaguePlayerId": player.id,
-                "leagueTeamId": current_team.id,
+                "leaguePlayerId_leagueTeamId": {
+                    "leaguePlayerId": player.id,
+                    "leagueTeamId": current_team.id,
+                },
             },
             data={"active": False},
         )
@@ -151,14 +156,24 @@ def process_new_team(
     if new_team is not None:
         db.leagueplayerteams.upsert(
             where={
-                "leaguePlayerId": player.id,
-                "leagueTeamId": new_team.id,
+                "leaguePlayerId_leagueTeamId": {
+                    "leaguePlayerId": player.id,
+                    "leagueTeamId": new_team.id,
+                },
             },
-            data={"active": True},
+            data={
+                "create": {
+                    "leaguePlayerId": player.id,
+                    "leagueTeamId": new_team.id,
+                    "active": True,
+                },
+                "update": {"active": True},
+            },
         )
 
     get_teams.clear()
-    return get_teams(db)
+    get_players.clear()
+    return get_teams(db), get_players(db)
 
 
 def main():
@@ -189,7 +204,8 @@ def main():
     if team is None:
         st.warning("Cannot add player without the team filter")
     if player_submitted:
-        players_list = process_new_player(db, player_name, team)
+        players_list, teams_list = process_new_player(db, player_name, team)
+        st.success("Player added")
 
     st.write("## Edit player")
     player = select_player(team, players_list)
@@ -213,12 +229,14 @@ def main():
     nick_submitted = st.button("Add nick")
     if nick_submitted:
         players_list = process_new_nick(db, player, new_nick)
+        st.success("Nick added")
 
     st.write("#### Team")
     new_team = select_new_team(player, team, teams_list)
     team_submitted = st.button("Change team")
     if team_submitted:
-        teams_list = process_new_team(db, player, team, new_team)
+        teams_list, players_list = process_new_team(db, player, team, new_team)
+        st.success("Team changed")
 
 
 if __name__ == "__main__":

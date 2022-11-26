@@ -305,6 +305,7 @@ def main():
         btn_teams = st.button("Update teams")
         if btn_teams:
             process_update_teams(db, teams_update, match_to_edit)
+            st.success("Teams updated")
 
         st.write("### General")
 
