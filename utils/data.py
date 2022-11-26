@@ -97,9 +97,7 @@ def get_teams(_db: Prisma):
 @st.experimental_singleton
 def get_players(_db: Prisma):
     players = _db.leagueplayer.find_many(
-        include={
-            "teams": True
-        },
+        include={"teams": True},
         order={"id": "asc"},
     )
     return players

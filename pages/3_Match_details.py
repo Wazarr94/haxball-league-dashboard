@@ -115,14 +115,14 @@ def format_period_filter(v: int):
 def filter_periods(match: LeagueMatch):
     match_copy = copy.deepcopy(match)
     period_select = st.selectbox(
-        "Select periods", 
+        "Select periods",
         list(range(len(match.periods) + 1)),
-        format_func=format_period_filter
+        format_func=format_period_filter,
     )
-    
+
     if period_select == 0:
         return match_copy
-    
+
     match_copy.periods = [match.periods[period_select - 1]]
     return match_copy
 

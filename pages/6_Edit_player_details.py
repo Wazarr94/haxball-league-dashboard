@@ -67,8 +67,12 @@ def get_current_team(player: LeaguePlayer):
 def select_new_team(player: LeaguePlayer, teams: list[LeagueTeam]):
     current_team = get_current_team(player)
     team_options = [None] + [t for t in teams if t.id != current_team.leagueTeamId]
-    new_team = st.selectbox("New team", team_options, format_func=lambda t: None if t is None else t.name)
-    
+    new_team = st.selectbox(
+        "New team",
+        team_options,
+        format_func=lambda t: None if t is None else t.name,
+    )
+
     return new_team
 
 
@@ -124,30 +128,28 @@ def process_delete_nick(db: Prisma, player: LeaguePlayer, nick: str):
 def process_new_team(
     db: Prisma,
     player: LeaguePlayer,
+    current_team: Optional[LeagueTeam],
     new_team: Optional[LeagueTeam],
 ):
-    current_team = get_current_team(player)
-    
+    if current_team is None:
+        current_team = get_current_team(player)
+
     if current_team is not None:
         db.leagueplayerteams.upsert(
             where={
                 "leaguePlayerId": player.id,
                 "leagueTeamId": current_team.id,
             },
-            data={
-                "active": False
-            }
+            data={"active": False},
         )
-    
+
     if new_team is not None:
         db.leagueplayerteams.upsert(
             where={
                 "leaguePlayerId": player.id,
                 "leagueTeamId": new_team.id,
             },
-            data={
-                "active": True
-            }
+            data={"active": True},
         )
 
     get_teams.clear()
@@ -195,8 +197,13 @@ def main():
     for nick in player.nicks:
         col1, col2 = st.columns([9, 1])
         col1.write(f"- {nick}")
-        players_list = col2.button("X", key=nick, on_click=process_delete_nick, args=[db, player, nick])
-    
+        players_list = col2.button(
+            "X",
+            key=nick,
+            on_click=process_delete_nick,
+            args=[db, player, nick],
+        )
+
     new_nick = st.text_input("New nick", "")
     nick_submitted = st.button("Add nick")
     if nick_submitted:
@@ -206,7 +213,7 @@ def main():
     new_team = select_new_team(player, teams_list)
     team_submitted = st.button("Change team")
     if team_submitted:
-        teams_list = process_new_team(db, player, new_team)
+        teams_list = process_new_team(db, player, team, new_team)
 
 
 if __name__ == "__main__":
