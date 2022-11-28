@@ -124,6 +124,9 @@ def filter_periods(match: LeagueMatch):
         return match_copy
 
     match_copy.periods = [match.periods[period_select - 1]]
+    if period_select % 2 == 0:
+        match_copy.detail[0].startsRed = not match_copy.detail[0].startsRed
+        match_copy.detail[1].startsRed = not match_copy.detail[1].startsRed
     return match_copy
 
 
