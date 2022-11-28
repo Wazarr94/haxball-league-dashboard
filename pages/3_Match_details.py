@@ -92,7 +92,7 @@ def display_statsheet(statsheet: PlayerStatSheet):
     col3.metric("Passes", statsheet.stats.passesAttempted)
     col4.metric(
         "Pass success %",
-        f"{statsheet.stats.passesSuccessful / statsheet.stats.passesAttempted * 100:.1f}%",
+        f"{statsheet.stats.passesSuccessful / (statsheet.stats.passesAttempted or 1) * 100:.1f}%",
     )
 
     col1.metric("Touches", statsheet.stats.touches)
