@@ -133,10 +133,10 @@ def get_title(match: LeagueMatch, teams: tuple[Optional[LeagueTeam]]):
 def process_update_teams(
     db: Prisma, teams: tuple[Optional[LeagueTeam]], match: LeagueMatch
 ):
-    updated = False
+    db.leaguematchdetail.delete_many(where={"leagueMatchId": match.id})
+
     data_list: list[LeagueMatchDetailCreateWithoutRelationsInput] = []
     if teams[0] is not None:
-        updated = True
         data_point_1: LeagueMatchDetailCreateWithoutRelationsInput = {
             "leagueMatchId": match.id,
             "leagueTeamId": teams[0].id,
@@ -145,7 +145,6 @@ def process_update_teams(
         }
         data_list.append(data_point_1)
     if teams[1] is not None:
-        updated = True
         data_point_2: LeagueMatchDetailCreateWithoutRelationsInput = {
             "leagueMatchId": match.id,
             "leagueTeamId": teams[1].id,
@@ -154,18 +153,17 @@ def process_update_teams(
         }
         data_list.append(data_point_2)
 
-    matches_details = db.leaguematchdetail.create_many(data=data_list)
+    db.leaguematchdetail.create_many(data=data_list)
 
-    if updated:
-        match_title = get_title(match, teams)
-        db.leaguematch.update(
-            where={
-                "id": match.id,
-            },
-            data={
-                "title": match_title,
-            },
-        )
+    match_title = get_title(match, teams)
+    db.leaguematch.update(
+        where={
+            "id": match.id,
+        },
+        data={
+            "title": match_title,
+        },
+    )
 
     get_matches.clear()
     return get_matches(db)
