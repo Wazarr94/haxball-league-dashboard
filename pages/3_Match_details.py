@@ -101,7 +101,7 @@ def display_statsheet(statsheet: PlayerStatSheet):
     col4.metric("CS", statsheet.cs)
 
     col1.metric("Shots", statsheet.stats.shots)
-    col2.metric("Shorts (T)", statsheet.stats.shotsTarget)
+    col2.metric("Shots (T)", statsheet.stats.shotsTarget)
     col3.metric("Rebounds", statsheet.stats.reboundDribbles)
     col4.metric("Own goals", statsheet.stats.ownGoals)
 
