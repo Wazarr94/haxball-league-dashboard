@@ -30,12 +30,10 @@ def config_pages():
     show_pages(
         [
             Page("Home.py", "Home", "🏠"),
-            Section("League", "⚽️"),
             Page("pages_experimental/1_Teams.py", "Teams", "👥"),
             Page("pages_experimental/2_Matches.py", "Matches", "📅"),
             Page("pages_experimental/3_Match_details.py", "Match details", "📊"),
             Page("pages_experimental/4_Statistics.py", "Statistics", "🏅"),
-            Section("Admin", "🔒"),
             Page(
                 "pages_experimental/5_Edit_match_details.py",
                 "Edit match details",
