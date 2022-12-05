@@ -3,6 +3,7 @@ import copy
 import streamlit as st
 from prisma import Prisma
 from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
+from st_pages import add_indentation
 
 from utils.data import (
     get_divisions,
@@ -22,6 +23,7 @@ from utils.utils import (
 )
 
 hide_streamlit_elements()
+add_indentation()
 
 
 def select_match(
