@@ -1,12 +1,8 @@
+import copy
+
 import streamlit as st
 from prisma import Prisma
-from prisma.models import (
-    LeagueDivision,
-    LeagueMatch,
-    LeaguePlayer,
-    LeagueTeam,
-)
-import copy
+from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
 
 from utils.data import (
     get_divisions,
@@ -18,11 +14,11 @@ from utils.data import (
 from utils.utils import (
     GamePosition,
     PlayerStatSheet,
+    display_gametime,
     get_info_match,
     get_statsheet_list,
     hide_streamlit_elements,
     sum_sheets,
-    display_gametime,
 )
 
 hide_streamlit_elements()
@@ -81,29 +77,30 @@ def select_match(
 def display_statsheet(statsheet: PlayerStatSheet):
     st.write(f"### {statsheet.player_name}")
     col1, col2, col3, col4 = st.columns(4)
+    ss = statsheet.stats
 
-    col1.metric("Gametime", display_gametime(statsheet.stats.gametime))
-    col2.metric("Position", GamePosition(statsheet.stats.gamePosition).name)
-    col3.metric("Goals", statsheet.stats.goals)
-    col4.metric("Assists", statsheet.stats.assists)
+    col1.metric("Gametime", display_gametime(ss.gametime))
+    col2.metric("Position", GamePosition(ss.gamePosition).name)
+    col3.metric("Goals", ss.goals)
+    col4.metric("Assists", ss.assists)
 
-    col1.metric("Assists (2)", statsheet.stats.secondaryAssists)
-    col2.metric("Assists (3)", statsheet.stats.tertiaryAssists)
-    col3.metric("Passes", statsheet.stats.passesAttempted)
+    col1.metric("Assists (2)", ss.secondaryAssists)
+    col2.metric("Assists (3)", ss.tertiaryAssists)
+    col3.metric("Passes", ss.passesAttempted)
     col4.metric(
         "Pass success %",
-        f"{statsheet.stats.passesSuccessful / (statsheet.stats.passesAttempted or 1) * 100:.1f}%",
+        f"{ss.passesSuccessful / (ss.passesAttempted or 1) * 100:.1f}%",
     )
 
-    col1.metric("Touches", statsheet.stats.touches)
-    col2.metric("Kicks", statsheet.stats.kicks)
-    col3.metric("Saves", statsheet.stats.saves)
+    col1.metric("Touches", ss.touches)
+    col2.metric("Kicks", ss.kicks)
+    col3.metric("Saves", ss.saves)
     col4.metric("CS", statsheet.cs)
 
-    col1.metric("Shots", statsheet.stats.shots)
-    col2.metric("Shots (T)", statsheet.stats.shotsTarget)
-    col3.metric("Rebounds", statsheet.stats.reboundDribbles)
-    col4.metric("Own goals", statsheet.stats.ownGoals)
+    col1.metric("Shots", ss.shots)
+    col2.metric("Shots (T)", ss.shotsTarget)
+    col3.metric("Rebounds", ss.reboundDribbles)
+    col4.metric("Own goals", ss.ownGoals)
 
 
 def format_period_filter(v: int):
@@ -134,21 +131,21 @@ def filter_periods(match: LeagueMatch):
 
 def display_stats_general(match: LeagueMatch):
     detail_1, detail_2 = match.detail[0], match.detail[1]
-    info_match = get_info_match(match)
+    info = get_info_match(match)
 
     st.write(
-        f"## {detail_1.team.name} {info_match.score[0]}-{info_match.score[1]} {detail_2.team.name}"
+        f"## {detail_1.team.name} {info.score[0]}-{info.score[1]} {detail_2.team.name}"
     )
     if match.replayURL != "":
         st.write(f"Replay link: {match.replayURL}")
     else:
         st.write("No replay link available")
 
-    poss_1 = info_match.possession[0] / (sum(info_match.possession))
+    poss_1 = info.possession[0] / (sum(info.possession))
     poss_2 = 1 - poss_1
     st.text(f"Possession: {100 * poss_1:.1f}% - {100 * poss_2:.1f}%")
 
-    action_1 = info_match.action_zone[0] / (sum(info_match.action_zone))
+    action_1 = info.action_zone[0] / (sum(info.action_zone))
     action_2 = 1 - action_1
     st.text(f"Action zone: {100 * action_1:.1f}% - {100 * action_2:.1f}%")
 

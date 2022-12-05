@@ -1,11 +1,13 @@
 import os
 import subprocess
 
+import streamlit as st
+
 
 def generate_prisma_client():
-    print(f"GENERATING PRISMA CLIENT")
+    print("GENERATING PRISMA CLIENT")
     subprocess.call(["prisma", "generate"])
-    print(f"GENERATED PRISMA CLIENT")
+    print("GENERATED PRISMA CLIENT")
 
 
 try:
@@ -14,12 +16,11 @@ except RuntimeError:
     from prisma_cleanup import cleanup
 
     cleanup()
-    print(f"GOT RUNTIME ERROR")
+    print("GOT RUNTIME ERROR")
     generate_prisma_client()
     from prisma import Prisma
 
-import streamlit as st
-from prisma.models import LeagueDivision
+from prisma.models import LeagueDivision  # noqa
 
 
 @st.experimental_singleton

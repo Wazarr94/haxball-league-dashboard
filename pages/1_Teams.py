@@ -1,6 +1,6 @@
 import streamlit as st
 from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueTeam, LeaguePlayer
+from prisma.models import LeagueDivision, LeaguePlayer, LeagueTeam
 
 from utils.data import get_divisions, get_teams, init_connection
 from utils.utils import hide_streamlit_elements
@@ -38,7 +38,7 @@ def display_active_players(team: LeagueTeam):
 
 def display_former_players(team: LeagueTeam):
     former_players = [p.player for p in team.players if not p.active]
-    st.write(f"**Former players:**")
+    st.write("**Former players:**")
 
     display_players(former_players)
 

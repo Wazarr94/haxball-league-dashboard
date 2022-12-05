@@ -321,8 +321,8 @@ def display_stats(
     df.columns = df.columns.str.replace("player.|stats.", "", regex=True)
 
     st.caption(
-        "Hover on the table and click the full screen icon to see all columns at once.\n\n"
-        + "Click on the header to sort by a statistic."
+        "Hover on the table and click the full screen icon to see all columns at once."
+        + "\n\nClick on the header to sort by a statistic."
     )
 
     st.dataframe(df.set_index("name").style.pipe(style_table))
