@@ -6,11 +6,13 @@ from prisma import Prisma
 from prisma.models import LeagueMatch
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
+from st_pages import add_indentation
 
 from utils.data import get_divisions, get_matches, get_teams, init_connection
 from utils.utils import get_info_match, get_unique_order, hide_streamlit_elements
 
 hide_streamlit_elements()
+add_indentation()
 
 
 def filter_matches(

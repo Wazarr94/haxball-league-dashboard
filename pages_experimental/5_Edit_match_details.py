@@ -7,6 +7,7 @@ from prisma.types import (
     LeagueMatchDetailCreateWithoutRelationsInput,
     PeriodWhereUniqueInput,
 )
+from st_pages import add_indentation
 
 from utils.data import (
     get_divisions,
@@ -18,6 +19,7 @@ from utils.data import (
 from utils.utils import hide_streamlit_elements
 
 hide_streamlit_elements()
+add_indentation()
 
 
 def select_match(

@@ -1,11 +1,13 @@
 import streamlit as st
 from prisma import Prisma
 from prisma.models import LeagueDivision, LeaguePlayer, LeagueTeam
+from st_pages import add_indentation
 
 from utils.data import get_divisions, get_teams, init_connection
 from utils.utils import hide_streamlit_elements
 
 hide_streamlit_elements()
+add_indentation()
 
 
 def select_team(teams: list[LeagueTeam], divisions: list[LeagueDivision]):
