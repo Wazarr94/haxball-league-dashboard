@@ -71,7 +71,7 @@ def main():
         st.write(f'Connected as *{st.session_state["name"]}*')
         authenticator.logout("Logout", "main")
     elif st.session_state["authentication_status"] is False:
-        st.error("Username/password is incorrect")
+        st.error("Username or password is incorrect")
 
 
 if __name__ == "__main__":
