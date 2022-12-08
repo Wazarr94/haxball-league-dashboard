@@ -8,6 +8,8 @@ def generate_prisma_client():
     print("GENERATING PRISMA CLIENT")
     subprocess.call(["prisma", "generate"])
     print("GENERATED PRISMA CLIENT")
+    
+generate_prisma_client()
 
 
 try:
