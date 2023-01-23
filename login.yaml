@@ -18,6 +18,9 @@ credentials:
     yazuneh:
       name: Yazuneh
       password: $2b$12$AU1aeMuTdusuc8rOBM398ONye0wSlL9uaxU0EYYyJL6kpsQ6IC2UK
+    youri:
+      name: Youri
+      password: $2b$12$EG79KExDhi..LjZMApySaOiW.H0o3bBIuWvdm8IuAEgQA8zH7g3NO
 
 cookie:
   expiry_days: 3650
