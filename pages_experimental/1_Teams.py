@@ -55,7 +55,7 @@ def main():
     teams_list = get_teams(db)
     divisions_list = get_divisions(db)
 
-    st.write("# Nations Cup teams")
+    st.write("# S10 teams")
 
     team = select_team(teams_list, divisions_list)
     if team is None:

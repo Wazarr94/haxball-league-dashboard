@@ -355,7 +355,7 @@ def main():
         for div in divisions_list
     }
 
-    st.write("# Nations Cup statistics")
+    st.write("# S10 statistics")
 
     div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
 
