@@ -137,7 +137,12 @@ def build_match_db(
         }
         standings.append(obj_standing)
     standings_df = pd.DataFrame(
-        [dict(s) for s in sorted(standings, key=lambda s: s["PTS"], reverse=True)]
+        [
+            dict(s)
+            for s in sorted(
+                standings, key=lambda s: (s["PTS"], s["DIFF"], s["GF"]), reverse=True
+            )
+        ]
     )
     return standings_df
 
