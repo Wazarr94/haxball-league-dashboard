@@ -36,14 +36,15 @@ def config_pages():
             Page("pages_experimental/2_Matches.py", "Matches", "📅"),
             Page("pages_experimental/3_Match_details.py", "Match details", "📊"),
             Page("pages_experimental/4_Statistics.py", "Statistics", "🏅"),
+            Page("pages_experimental/5_Standings.py", "Standings", "🏆"),
             Section("Admin", "🔒"),
             Page(
-                "pages_experimental/5_Edit_match_details.py",
+                "pages_experimental/6_Edit_match_details.py",
                 "Edit match details",
                 "⚙️",
             ),
             Page(
-                "pages_experimental/6_Edit_player_details.py",
+                "pages_experimental/7_Edit_player_details.py",
                 "Edit player details",
                 "🔧",
             ),

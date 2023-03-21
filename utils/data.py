@@ -8,7 +8,8 @@ def generate_prisma_client():
     print("GENERATING PRISMA CLIENT")
     subprocess.call(["prisma", "generate"])
     print("GENERATED PRISMA CLIENT")
-    
+
+
 generate_prisma_client()
 
 
@@ -76,6 +77,9 @@ def get_matches(_db: Prisma):
 @st.experimental_singleton
 def get_divisions(_db: Prisma) -> list[LeagueDivision]:
     divisions = _db.leaguedivision.find_many(
+        include={
+            "teams": True,
+        },
         order={"id": "asc"},
     )
     return divisions
