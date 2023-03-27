@@ -12,9 +12,9 @@ from prisma.models import LeagueMatch, LeaguePlayer, Period, PlayerStats
 class GamePosition(IntEnum):
     unknown = 0
     GK = 1
-    DM = 2
-    AM = 3
-    ST = 4
+    CM = 2
+    ST = 3
+    error = 4
 
 
 def hide_streamlit_elements() -> st._DeltaGenerator:
