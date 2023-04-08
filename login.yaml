@@ -10,13 +10,13 @@ credentials:
       name: Fernandell
       password: $2y$10$Skihb1R.d6dct2kGhPJT7uUdyv.KY3ifqs.cFRc.vvv3ssSFt1AC2
     flamer:
-      name: flamer
+      name: Flamer
       password: $2y$10$.oN.POg/.IEckj/9Tebboe0L1HXlZSZi8aaYg89gamCLfgSqabRzO
     piano_player:
-      name: piano_player
+      name: piano player
       password: $2y$10$9RUGP/71AAJ0qtGn5H8rnOHE99ChfH2SEwYlcO8xoGES3OVU2nW4K
-    rancore:
-      name: rancore996
+    rancore996:
+      name: Rancore996
       password: $2y$10$KYxjs3PxhOC9nfRK6.n3.eoNXnwPnclQ.xUuRkEqMcsZxbFBeK3HG
 
 cookie:
