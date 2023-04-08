@@ -4,5 +4,6 @@ pyproject.toml
 poetry.lock
 .env
 .streamlit/*
+login.private.yaml
 
 __pycache__/

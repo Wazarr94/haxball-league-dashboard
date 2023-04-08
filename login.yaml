@@ -2,25 +2,22 @@ credentials:
   usernames:
     wazarr:
       name: Wazarr
-      password: $2b$12$TuM9bJf7Zt83gI1.oOg8Fu9q9b02XhPcPXPIQ2HG.NEQWtNtT1KVW
-    daffyd:
-      name: Daffyd
-      password: $2b$12$eq8FRk2OXU2UpWzThMia4uVmaGff7V3CijRA6.YwG4mLxPi.hnFAK
-    girlontar:
-      name: Girl
-      password: $2b$12$f3bYVZ8PSoykhBbam9iqSeQF/Sv0VuY2MGYOc/tsC3vzwPmEWeBca
-    atuntija:
-      name: AT
-      password: $2b$12$x03f.rvSC.psIfZrgmdRp.W2J2PZhxqT3Kz00rBMn7lDM8vSh5aQC
-    hassi:
-      name: Hassi
-      password: $2b$12$/6ZHEhxOhfJUG.cYcgnB5Ovx4T5DzUfLaiYL6HWo5s.zpRkKSv7LG
-    yazuneh:
-      name: Yazuneh
-      password: $2b$12$AU1aeMuTdusuc8rOBM398ONye0wSlL9uaxU0EYYyJL6kpsQ6IC2UK
-    youri:
-      name: Youri
-      password: $2b$12$EG79KExDhi..LjZMApySaOiW.H0o3bBIuWvdm8IuAEgQA8zH7g3NO
+      password: $2y$10$YTgbdrvshz3DTRkzPhj5kudAXPE2VbslCNOf/CoIjN0D6F4vt.Rd.
+    wilmot:
+      name: Wilmot
+      password: $2y$10$mZuK1oC8JlI1kO8WP5nOSukLIK7YhPgCcDDDbn8OUwt9sK7/mmNJG
+    fernandell:
+      name: Fernandell
+      password: $2y$10$Skihb1R.d6dct2kGhPJT7uUdyv.KY3ifqs.cFRc.vvv3ssSFt1AC2
+    flamer:
+      name: flamer
+      password: $2y$10$.oN.POg/.IEckj/9Tebboe0L1HXlZSZi8aaYg89gamCLfgSqabRzO
+    piano_player:
+      name: piano_player
+      password: $2y$10$9RUGP/71AAJ0qtGn5H8rnOHE99ChfH2SEwYlcO8xoGES3OVU2nW4K
+    rancore:
+      name: rancore996
+      password: $2y$10$KYxjs3PxhOC9nfRK6.n3.eoNXnwPnclQ.xUuRkEqMcsZxbFBeK3HG
 
 cookie:
   expiry_days: 3650
