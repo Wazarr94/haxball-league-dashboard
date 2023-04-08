@@ -68,7 +68,7 @@ def main():
         st.experimental_singleton.clear()
 
     st.write("# Home page")
-    st.write("#### Welcome to the BFF dashboard")
+    st.write("#### Welcome to the FUTLIFE dashboard")
 
     authenticator = init_login()
     authenticator.login("Admin login", "main")

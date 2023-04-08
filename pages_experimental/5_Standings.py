@@ -157,7 +157,7 @@ def main():
     matches_list = get_matches(db)
     divisions_list = get_divisions(db)
 
-    st.write("# S10 standings")
+    st.write("# S1 preseason standings")
 
     div_select = get_div_select(divisions_list)
     matchdays_select = get_matchday_select(matches_list, div_select)

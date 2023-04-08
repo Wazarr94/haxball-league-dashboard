@@ -331,7 +331,7 @@ def display_stats(
     st.download_button(
         label="Download data as Excel",
         data=download_stats(df),
-        file_name="BFF_stats.xlsx",
+        file_name="FUTLIFE_stats.xlsx",
         mime="application/vnd.ms-excel",
     )
 
@@ -355,7 +355,7 @@ def main():
         for div in divisions_list
     }
 
-    st.write("# S10 statistics")
+    st.write("# S1 preseason statistics")
 
     div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
 

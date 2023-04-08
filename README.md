@@ -2,6 +2,6 @@
 
 Dashboard for statistics for haxball leagues.
 
-*Stack used:* (Railway, Docker), Streamlit, Prisma, Supabase, PostgreSQL, GCP, Node.js
+_Stack used:_ (Railway, Docker), Streamlit, Prisma, Supabase, PostgreSQL, GCP, Node.js
 
-Link: https://haxball-bff.streamlit.app/
+Link: <https://futlife.streamlit.app/>

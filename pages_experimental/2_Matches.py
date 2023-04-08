@@ -87,7 +87,7 @@ def main():
         div.id: len(matchday_options[div.id]) / 2 for div in divisions_list
     }
 
-    st.write("# S10 matches")
+    st.write("# S1 preseason matches")
 
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
