@@ -8,13 +8,14 @@ from typing import Literal, Optional
 import streamlit as st
 from prisma.models import LeagueMatch, LeaguePlayer, Period, PlayerStats
 
+from utils.constants import GAME_TIME, CS_TIME_NECESSARY
+
 
 class GamePosition(IntEnum):
     unknown = 0
     GK = 1
     CM = 2
     ST = 3
-    error = 4
 
 
 def hide_streamlit_elements() -> st._DeltaGenerator:
@@ -146,7 +147,7 @@ def sum_sheets(player_sheets: list[PlayerStatSheet]):
     for group in gpd:
         goals = sum([pss.stats.goals for pss in group])
         assists = sum([pss.stats.assists for pss in group])
-        gametime = sum([min(pss.stats.gametime, 7 * 60) for pss in group])
+        gametime = sum([min(pss.stats.gametime, GAME_TIME * 60) for pss in group])
         secondaryAssists = sum([pss.stats.secondaryAssists for pss in group])
         tertiaryAssists = sum([pss.stats.tertiaryAssists for pss in group])
         saves = sum([pss.stats.saves for pss in group])
@@ -217,7 +218,7 @@ def sum_sheets(player_sheets: list[PlayerStatSheet]):
 def getCS(stats_player: PlayerStats, period: Period, team: Literal[1, 2]):
     if (
         stats_player.gamePosition == GamePosition.GK
-        and stats_player.gametime > 6 * 60 + 30
+        and stats_player.gametime > CS_TIME_NECESSARY * 60
     ):
         if period.scoreRed == 0 and team == 2:
             return 1

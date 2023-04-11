@@ -26,6 +26,7 @@ from utils.utils import (
     display_gametime,
     display_pass_success,
 )
+from utils.constants import GAME_TIME
 
 hide_streamlit_elements()
 add_indentation()
@@ -128,7 +129,7 @@ def download_stats(df: pd.DataFrame):
 
 def treat_stat(stat: pl.Expr, normalized: bool, gametime: pl.Expr):
     if normalized:
-        return stat / (gametime / (14 * 60))
+        return stat / (gametime / (GAME_TIME * 2 * 60))
     return stat
 
 
@@ -137,11 +138,13 @@ def display_options_stats():
     with col1:
         st.write("")
         st.write("")
-        normalize_stats = st.checkbox("Normalize stats per 14mn ?", value=False)
+        normalize_stats = st.checkbox(
+            f"Normalize stats per {GAME_TIME * 2}mn ?", value=False
+        )
     with col2:
         st.write("")
         st.write("")
-        filter_players_time = st.checkbox("Hide players with < 14mn ?")
+        filter_players_time = st.checkbox(f"Hide players with < {GAME_TIME * 2}mn ?")
     with col3:
         st.write("")
         st.write("")
@@ -310,7 +313,7 @@ def display_stats(
         )
         .filter(
             pl.when(filter_players)
-            .then(pl.col("stats.gametime") >= 14 * 60)
+            .then(pl.col("stats.gametime") >= GAME_TIME * 2 * 60)
             .otherwise(True)
         )
         .filter(
