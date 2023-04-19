@@ -263,7 +263,7 @@ def create_matches_details(db: Prisma, excel: UploadedFile) -> int:
     return matches_details
 
 
-def clear_db(db: Prisma) -> None:
+def clear_league_db(db: Prisma) -> None:
     db.leagueplayer.delete_many(where={})
     db.leagueteam.delete_many(where={})
     db.leagueplayerteams.delete_many(where={})
@@ -275,7 +275,7 @@ def clear_db(db: Prisma) -> None:
 def clear_db_system(db: Prisma) -> None:
     button = st.button("Clear database")
     if button:
-        clear_db(db)
+        clear_league_db(db)
         st.success("Database cleared")
 
 
@@ -284,21 +284,21 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
         create_divisions(db, excel_file)
     except Exception as e:
         st.error(f"Error while creating divisions. Clearing database.\n {e}")
-        clear_db(db)
+        clear_league_db(db)
         return False
 
     try:
         create_teams(db, excel_file)
     except Exception as e:
         st.error(f"Error while creating teams. Clearing database.\n {e}")
-        clear_db(db)
+        clear_league_db(db)
         return False
 
     try:
         create_players(db, excel_file)
     except Exception as e:
         st.error(f"Error while creating players. Clearing database.\n {e}")
-        clear_db(db)
+        clear_league_db(db)
         return False
 
     try:
@@ -307,21 +307,21 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
         st.error(
             f"Error while creating team players relationship. Clearing database.\n {e}"
         )
-        clear_db(db)
+        clear_league_db(db)
         return False
 
     try:
         create_matches(db, excel_file)
     except Exception as e:
         st.error(f"Error while creating matches. Clearing database.\n {e}")
-        clear_db(db)
+        clear_league_db(db)
         return False
 
     try:
         create_matches_details(db, excel_file)
     except Exception as e:
         st.error(f"Error while creating match details. Clearing database.\n {e}")
-        clear_db(db)
+        clear_league_db(db)
         return False
 
     return True

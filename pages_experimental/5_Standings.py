@@ -163,8 +163,7 @@ def main():
     matchdays_select = get_matchday_select(matches_list, div_select)
 
     info_matches = build_match_db(matches_list, div_select, matchdays_select)
-    height_df = 38 * len(info_matches)
-    st.dataframe(info_matches, height=height_df)
+    st.dataframe(info_matches)
 
 
 if __name__ == "__main__":
