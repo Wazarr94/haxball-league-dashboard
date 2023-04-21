@@ -8,7 +8,6 @@ from prisma import Prisma
 from prisma.types import (
     LeagueMatchCreateWithoutRelationsInput,
     LeagueMatchDetailCreateWithoutRelationsInput,
-    LeagueTeamCreateWithoutRelationsInput,
 )
 from st_pages import add_indentation
 
@@ -63,47 +62,18 @@ def create_teams(db: Prisma, excel: UploadedFile) -> int:
         dtype={"Division_name": str},
     )
 
-    divisions_class = db.leaguedivision.find_many()
-    divisions_df = (
-        pd.DataFrame([dict(s) for s in divisions_class])
-        .iloc[:, :2]
-        .rename(columns={"id": "Division_id", "name": "Division_name"})
-    )
-
-    teams_dict_records = teams_df.merge(
-        divisions_df, how="left", on="Division_name"
-    ).to_dict("records")
-
-    data_list: list[LeagueTeamCreateWithoutRelationsInput] = [
-        {
-            "name": x["name"],
-            "leagueDivisionId": x["Division_id"],
-            "initials": x["initials"],
-        }
-        for x in teams_dict_records
-    ]
-
-    teams = db.leagueteam.create_many(data=data_list)
+    teams_df = teams_df.drop(columns=["Division_name"])
+    teams = db.leagueteam.create_many(data=teams_df.to_dict("records"))
 
     return teams
 
 
 def create_team_divisions_relationship(db: Prisma, excel: UploadedFile) -> int:
-    players_df = pd.read_excel(excel, "Players", na_values="---")
-
-    players_class = db.leagueplayer.find_many()
-    players_dict = (
-        pd.DataFrame([dict(s) for s in players_class])
-        .loc[:, ["id", "name"]]
-        .set_index("name")
-        .to_dict("dict")["id"]
+    teams_df = pd.read_excel(
+        excel,
+        "Teams",
+        dtype={"Division_name": str},
     )
-
-    players_df["player_id"] = players_df["PLAYER"].apply(
-        lambda x: players_dict[str(x)] if str(x) in players_dict.keys() else -1
-    )
-
-    players_df = players_df.iloc[:, 1:].set_index("player_id")
 
     teams_class = db.leagueteam.find_many()
     teams_dict = (
@@ -113,32 +83,34 @@ def create_team_divisions_relationship(db: Prisma, excel: UploadedFile) -> int:
         .to_dict("dict")["id"]
     )
 
-    players_teams_df = players_df["TEAM"].apply(
-        lambda x: teams_dict[x] if x in teams_dict.keys() else -1
+    teams_df["team_id"] = teams_df["name"].apply(
+        lambda x: teams_dict[str(x)] if str(x) in teams_dict.keys() else -1
     )
 
-    data_list_active = []
-    for k, v in players_teams_df.items():
+    teams_df = teams_df.set_index("team_id")
+    teams_df = teams_df.drop(columns=["name"])
+
+    divisions_class = db.leaguedivision.find_many()
+    divisions_dict = (
+        pd.DataFrame([dict(s) for s in divisions_class])
+        .loc[:, ["id", "name"]]
+        .set_index("name")
+        .to_dict("dict")["id"]
+    )
+
+    teams_divisions_df = teams_df["Division_name"].apply(
+        lambda x: divisions_dict[x] if x in divisions_dict.keys() else -1
+    )
+
+    data_list = []
+    for k, v in teams_divisions_df.items():
         if k != -1 and v != -1:
-            data_point = {"leaguePlayerId": k, "leagueTeamId": v, "active": True}
-            data_list_active.append(data_point)
+            data_point = {"leagueTeamId": k, "leagueDivisionId": v}
+            data_list.append(data_point)
 
-    active_players = db.leagueplayerteams.create_many(data=data_list_active)
+    team_divisions = db.leagueteamdivisions.create_many(data=data_list)
 
-    players_old_teams_df = players_df.loc[
-        :, players_df.columns.str.contains("team")
-    ].applymap(lambda x: teams_dict[x] if x in teams_dict.keys() else -1)
-
-    data_list_inactive = []
-    for col in players_old_teams_df.columns:
-        for k, v in players_old_teams_df[col].items():
-            if k != -1 and v != -1:
-                data_point = {"leaguePlayerId": k, "leagueTeamId": v, "active": False}
-                data_list_inactive.append(data_point)
-
-    inactive_players = db.leagueplayerteams.create_many(data=data_list_inactive)
-
-    return active_players + inactive_players
+    return team_divisions
 
 
 def create_players(db: Prisma, excel: UploadedFile) -> int:
