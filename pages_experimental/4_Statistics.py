@@ -37,24 +37,18 @@ def get_div_team_select(
 ) -> tuple[Optional[LeagueDivision], Optional[str]]:
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
-        div_name_list = [d.name for d in divisions]
-        div_name_select = st.selectbox("Division", div_name_list)
-        div_list = [d for d in divisions if d.name == div_name_select]
-        if len(div_list) == 0:
-            div_select = None
-        else:
-            div_select = div_list[0]
+        div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
     with col2:
         st.text("")
         st.text("")
         use_team_filter = st.checkbox("Filter team", False)
     with col3:
         if use_team_filter:
-            team_options = [t.name for t in teams if t.division.name in div_name_select]
+            team_name_options = [td.team.name for td in div_select.teams]
         else:
-            team_options = []
-        team_options.sort()
-        team_name_select = st.selectbox("Team", team_options)
+            team_name_options = []
+        team_name_select = st.selectbox("Team", team_name_options)
+
     return div_select, team_name_select
 
 
@@ -111,7 +105,7 @@ def get_stats(
 
     players_stats: list[LeaguePlayer] = []
     for team in teams:
-        if team.division.id == div_select.id:
+        if div_select.id in [td.leagueDivisionId for td in team.divisions]:
             if team_name_select is None or (
                 team_name_select is not None and team.name == team_name_select
             ):

@@ -84,7 +84,11 @@ def get_matches(_db: Prisma) -> list[LeagueMatch]:
 def get_divisions(_db: Prisma) -> list[LeagueDivision]:
     divisions = _db.leaguedivision.find_many(
         include={
-            "teams": True,
+            "teams": {
+                "include": {
+                    "team": True,
+                },
+            }
         },
         order={"id": "asc"},
     )
@@ -95,7 +99,11 @@ def get_divisions(_db: Prisma) -> list[LeagueDivision]:
 def get_teams(_db: Prisma) -> list[LeagueTeam]:
     teams = _db.leagueteam.find_many(
         include={
-            "divisions": True,
+            "divisions": {
+                "include": {
+                    "division": True,
+                }
+            },
             "players": {
                 "include": {
                     "player": True,

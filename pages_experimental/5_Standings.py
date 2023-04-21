@@ -41,14 +41,15 @@ class StandingTeam:
 
 def get_div_select(divisions: list[LeagueDivision]) -> Optional[LeagueDivision]:
     col1, _ = st.columns([4, 10])
-    div_name_list = [d.name for d in divisions]
-    div_name_select = col1.selectbox("Division", div_name_list)
-    div_list = [d for d in divisions if d.name == div_name_select]
-    if len(div_list) == 0:
-        div_select = None
-    else:
-        div_select = div_list[0]
+    div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
     return div_select
+
+
+def format_matchday(value: int, matchday_options: list[int], empty: bool):
+    if empty:
+        return value
+    else:
+        return matchday_options[value]
 
 
 def get_matchday_select(matches_list: list[LeagueMatch], division: LeagueDivision):
@@ -58,17 +59,17 @@ def get_matchday_select(matches_list: list[LeagueMatch], division: LeagueDivisio
     if len(matchday_options) == 0:
         matchdays_values = (1, 1)
         matchdays_values_opt = (1, 1)
-        format_func = lambda v: v
+        empty = True
     else:
         matchdays_values = range(len(matchday_options))
         matchdays_values_opt = (0, max(matchdays_values))
-        format_func = lambda v: matchday_options[v]
+        empty = False
 
     matchdays_select = st.select_slider(
         "Matchdays",
         options=matchdays_values,
         value=matchdays_values_opt,
-        format_func=format_func,
+        format_func=lambda v: format_matchday(v, matchday_options, empty),
     )
 
     return matchdays_select
@@ -135,8 +136,8 @@ def build_match_db(
     matchdays_select: tuple[int],
 ):
     standings = []
-    for team in division.teams:
-        standing = build_match_db_team(match_list, team, matchdays_select)
+    for team_div in division.teams:
+        standing = build_match_db_team(match_list, team_div.team, matchdays_select)
         obj_standing = {
             "team": standing.initials,
             "GP": standing.games,

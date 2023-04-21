@@ -8,7 +8,7 @@ from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from st_pages import add_indentation
 
-from utils.data import get_divisions, get_matches, get_teams, init_connection
+from utils.data import get_divisions, get_matches, init_connection
 from utils.utils import get_info_match, get_unique_order, hide_streamlit_elements
 
 hide_streamlit_elements()
@@ -66,7 +66,6 @@ def main():
     db: Prisma = st.session_state["db"]
 
     matches_list = get_matches(db)
-    teams_list = get_teams(db)
     divisions_list = get_divisions(db)
 
     matchday_options = {
@@ -91,25 +90,17 @@ def main():
 
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
-        div_name_select = st.selectbox("Division", [d.name for d in divisions_list])
-        div_list = [d for d in divisions_list if d.name == div_name_select]
-        if len(div_list) == 0:
-            div_select = None
-        else:
-            div_select = div_list[0]
+        div = st.selectbox("Division", divisions_list, format_func=lambda d: d.name)
     with col2:
         st.text("")
         st.text("")
         use_team_filter = st.checkbox("Filter team", False)
     with col3:
         if use_team_filter:
-            team_options = [
-                t.name for t in teams_list if t.division.name in div_name_select
-            ]
+            team_options = [td.team for td in div.teams]
         else:
             team_options = []
-        team_options.sort()
-        team_select = st.selectbox("Team", team_options)
+        team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
 
     col1, col2 = st.columns([2, 8])
     with col1:
@@ -117,10 +108,10 @@ def main():
         st.write("")
         filter_by_md = col1.checkbox("Filter MD", False)
     with col2:
-        if div_select is None:
+        if div is None:
             matchdays_options_div = [1, 1]
         else:
-            matchdays_options_div = matchday_options[div_select.id]
+            matchdays_options_div = matchday_options[div.id]
         matchday_select = col2.select_slider(
             "Matchday",
             options=matchdays_options_div,
@@ -130,7 +121,7 @@ def main():
             matchday_select = None
 
     match_list_filter = filter_matches(
-        matches_list, team_select, div_name_select, matchday_select
+        matches_list, team_select, div.name, matchday_select
     )
 
     df = build_match_db(match_list_filter)
@@ -143,13 +134,13 @@ def main():
         pivot=True,
     )
 
-    if div_select is None:
+    if div is None:
         pagination_nb = 1
     else:
         if use_team_filter:
-            pagination_nb = pagination_team[div_select.id]
+            pagination_nb = pagination_team[div.id]
         else:
-            pagination_nb = pagination_division[div_select.id]
+            pagination_nb = pagination_division[div.id]
 
     gb.configure_pagination(
         enabled=True,

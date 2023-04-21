@@ -42,24 +42,17 @@ def select_match(
 
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
-        div_name_list = [d.name for d in divisions]
-        div_name_select = st.selectbox("Division", div_name_list)
-        div_list = [d for d in divisions if d.name == div_name_select]
-        if len(div_list) == 0:
-            div_select = None
-        else:
-            div_select = div_list[0]
+        div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
     with col2:
         st.text("")
         st.text("")
         use_team_filter = st.checkbox("Filter team", False)
     with col3:
         if use_team_filter:
-            team_options = [t.name for t in teams if t.division.name in div_name_select]
+            team_options = [td.team for td in div_select.teams]
         else:
             team_options = []
-        team_options.sort()
-        team_select = st.selectbox("Team", team_options)
+        team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
 
     if div_select is None:
         matchdays_options_div = [1, 1]
@@ -71,18 +64,15 @@ def select_match(
     for m in matches:
         if m.matchday != matchday_select:
             continue
-        if m.LeagueDivision.name != div_name_select:
+        if m.LeagueDivision.name != div_select.name:
             continue
         if len(m.periods) == 0:
             continue
         if team_select is None or any([md.team.name == team_select for md in m.detail]):
             match_list_filter.append(m)
 
-    match_to_edit_title = st.selectbox("Match", [m.title for m in match_list_filter])
-    match_list = [m for m in match_list_filter if m.title == match_to_edit_title]
-    if len(match_list) == 0:
-        return None
-    return match_list[0]
+    match = st.selectbox("Match", match_list_filter, format_func=lambda m: m.title)
+    return match
 
 
 def display_statsheet(statsheet: PlayerStatSheet):
@@ -184,6 +174,7 @@ def display_stats_teams(match: LeagueMatch, players: list[LeaguePlayer]):
 
     with tab2:
         display_stats_team(ps_list, detail_2.team)
+
     return None
 
 

@@ -14,15 +14,16 @@ add_indentation()
 def select_team(teams: list[LeagueTeam], divisions: list[LeagueDivision]):
     col1, col2 = st.columns([4, 8])
     with col1:
-        div_select = st.selectbox("Division", [d.name for d in divisions])
+        div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
     with col2:
-        team_options = [t.name for t in teams if t.division.name in div_select]
-        team_options.sort()
-        team_select = st.selectbox("Team", team_options)
-    team_list = [t for t in teams if t.name == team_select]
-    if len(team_list) == 0:
-        return None
-    return team_list[0]
+        team_options = [td.team for td in div_select.teams]
+        if len(team_options) == 0:
+            return None
+        team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
+
+    # Get the team from the teams list to have the full object
+    team = [t for t in teams if t.id == team_select.id][0]
+    return team
 
 
 def display_players(players: list[LeaguePlayer], nb_cols: int = 2) -> None:
@@ -64,6 +65,7 @@ def main():
         return
 
     st.write(f"## {team.name}")
+    st.caption(f"Initials: {team.initials}")
 
     display_active_players(team)
     display_former_players(team)

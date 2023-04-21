@@ -35,15 +35,7 @@ def select_match(
     }
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
-        div_name_select = st.selectbox(
-            "Division",
-            [d.name for d in divisions],
-        )
-        div_list = [d for d in divisions if d.name == div_name_select]
-        if len(div_list) == 0:
-            div_select = None
-        else:
-            div_select = div_list[0]
+        div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
     with col2:
         st.text("")
         st.text("")
@@ -53,14 +45,10 @@ def select_match(
         )
     with col3:
         if use_team_filter:
-            team_options = [t.name for t in teams if t.division.name in div_name_select]
+            team_options = [td.team for td in div_select.teams]
         else:
             team_options = []
-        team_options.sort()
-        team_select = st.selectbox(
-            "Team",
-            team_options,
-        )
+        team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
 
     if div_select is None:
         matchdays_options_div = [1, 1]
@@ -72,7 +60,7 @@ def select_match(
     for m in matches:
         if m.matchday != matchday_select:
             continue
-        if m.LeagueDivision.name != div_name_select:
+        if m.LeagueDivision.name != div_select.name:
             continue
         if team_select is None or any([md.team.name == team_select for md in m.detail]):
             match_list_filter.append(m)
@@ -86,42 +74,41 @@ def select_match(
 
 def select_update_teams(teams: list[LeagueTeam], match: LeagueMatch):
     col1, _, col2 = st.columns([7, 1, 8])
-    team_choices = [t.name for t in teams if t.division.id == match.leagueDivisionId]
+    team_choices = [
+        t
+        for t in teams
+        if match.leagueDivisionId in [td.division.id for td in t.divisions]
+    ]
+    team_choices_id = [t.id for t in team_choices]
     with col1:
         if len(match.detail) > 0:
             team1_select = st.selectbox(
                 "Team 1",
                 team_choices,
-                index=team_choices.index(match.detail[0].team.name),
+                index=team_choices_id.index(match.detail[0].team.id),
+                format_func=lambda t: t.name,
             )
         else:
             team1_select = st.selectbox(
                 "Team 1",
                 [None] + team_choices,
+                format_func=lambda t: t.name,
             )
     with col2:
         if len(match.detail) > 1:
             team2_select = st.selectbox(
                 "Team 2",
                 team_choices,
-                index=team_choices.index(match.detail[1].team.name),
+                index=team_choices_id.index(match.detail[1].team.id),
+                format_func=lambda t: t.name,
             )
         else:
             team2_select = st.selectbox(
                 "Team 2",
-                [None] + [t for t in team_choices if t != team1_select],
+                [None] + [t for t in team_choices if t.id != team1_select.id],
+                format_func=lambda t: t.name,
             )
-    team_list_1 = [t for t in teams if t.name == team1_select]
-    if len(team_list_1) == 0:
-        team1 = None
-    else:
-        team1 = team_list_1[0]
-    team_list_2 = [t for t in teams if t.name == team2_select]
-    if len(team_list_2) == 0:
-        team2 = None
-    else:
-        team2 = team_list_2[0]
-    return team1, team2
+    return team1_select, team2_select
 
 
 def get_title(match: LeagueMatch, teams: tuple[Optional[LeagueTeam]]):

@@ -22,25 +22,21 @@ def select_team(teams: list[LeagueTeam], divisions: list[LeagueDivision]):
             False,
         )
     with col2:
-        div_filter = [d.name for d in divisions] if use_team_filter else []
-        div_select = st.selectbox(
-            "Division",
-            div_filter,
-        )
+        div_filter = divisions if use_team_filter else []
+        div_select = st.selectbox("Division", div_filter, format_func=lambda d: d.name)
     with col3:
         if use_team_filter:
-            team_options = [t.name for t in teams if t.division.name in div_select]
-            team_options.sort()
+            team_options = [td.team for td in div_select.teams]
         else:
             team_options = []
-        team_name_select = st.selectbox(
-            "Team",
-            team_options,
-        )
-    team_list = [t for t in teams if t.name == team_name_select]
-    if len(team_list) == 0:
+        team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
+
+    if team_select is None:
         return None
-    return team_list[0]
+
+    # Get the team from the teams list to have the full object
+    team = [t for t in teams if t.id == team_select.id][0]
+    return team
 
 
 def select_player(team: Optional[LeagueTeam], players: list[LeaguePlayer]):
