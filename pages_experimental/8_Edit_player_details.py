@@ -53,7 +53,11 @@ def select_player(team: Optional[LeagueTeam], players: list[LeaguePlayer]):
         "Player",
         players_name_list,
     )
-    player_obj = [p for p in players_list if p.name == player_name_select][0]
+    player_list = [p for p in players_list if p.name == player_name_select]
+    if len(player_list) == 0:
+        player_obj = None
+    else:
+        player_obj = player_list[0]
     return player_obj
 
 

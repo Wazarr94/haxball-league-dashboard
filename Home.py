@@ -65,7 +65,7 @@ def main():
 
     reload_data_btn = st.button("Reload data")
     if reload_data_btn:
-        st.experimental_singleton.clear()
+        st.cache_resource.clear()
 
     st.write("# Home page")
     st.write("#### Welcome to the FUTLIFE dashboard")

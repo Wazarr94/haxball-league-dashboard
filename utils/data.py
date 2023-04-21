@@ -32,7 +32,7 @@ from prisma.models import (  # noqa
 )
 
 
-@st.experimental_singleton
+@st.cache_resource
 def init_connection() -> Prisma:
     url = os.environ["DATABASE_URL"]
     db = Prisma(
@@ -44,7 +44,7 @@ def init_connection() -> Prisma:
     return db
 
 
-@st.experimental_singleton
+@st.cache_resource
 def get_matches(_db: Prisma) -> list[LeagueMatch]:
     matches = _db.leaguematch.find_many(
         include={
@@ -80,7 +80,7 @@ def get_matches(_db: Prisma) -> list[LeagueMatch]:
     return matches
 
 
-@st.experimental_singleton
+@st.cache_resource
 def get_divisions(_db: Prisma) -> list[LeagueDivision]:
     divisions = _db.leaguedivision.find_many(
         include={
@@ -91,11 +91,11 @@ def get_divisions(_db: Prisma) -> list[LeagueDivision]:
     return divisions
 
 
-@st.experimental_singleton
+@st.cache_resource
 def get_teams(_db: Prisma) -> list[LeagueTeam]:
     teams = _db.leagueteam.find_many(
         include={
-            "division": True,
+            "divisions": True,
             "players": {
                 "include": {
                     "player": True,
@@ -107,7 +107,7 @@ def get_teams(_db: Prisma) -> list[LeagueTeam]:
     return teams
 
 
-@st.experimental_singleton
+@st.cache_resource
 def get_players(_db: Prisma) -> list[LeaguePlayer]:
     players = _db.leagueplayer.find_many(
         include={
@@ -122,7 +122,7 @@ def get_players(_db: Prisma) -> list[LeaguePlayer]:
     return players
 
 
-@st.experimental_singleton
+@st.cache_resource
 def get_periods(_db: Prisma) -> list[Period]:
     periods = _db.period.find_many(
         order={"id": "asc"},

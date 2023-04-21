@@ -60,6 +60,7 @@ def main():
 
     team = select_team(teams_list, divisions_list)
     if team is None:
+        st.error("No teams found")
         return
 
     st.write(f"## {team.name}")

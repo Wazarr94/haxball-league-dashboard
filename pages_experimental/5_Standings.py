@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import pandas as pd
 import streamlit as st
@@ -38,11 +39,15 @@ class StandingTeam:
         return self.goals_scored - self.goals_conceded
 
 
-def get_div_select(divisions: list[LeagueDivision]):
+def get_div_select(divisions: list[LeagueDivision]) -> Optional[LeagueDivision]:
     col1, _ = st.columns([4, 10])
     div_name_list = [d.name for d in divisions]
     div_name_select = col1.selectbox("Division", div_name_list)
-    div_select = [d for d in divisions if d.name == div_name_select][0]
+    div_list = [d for d in divisions if d.name == div_name_select]
+    if len(div_list) == 0:
+        div_select = None
+    else:
+        div_select = div_list[0]
     return div_select
 
 
@@ -50,13 +55,20 @@ def get_matchday_select(matches_list: list[LeagueMatch], division: LeagueDivisio
     matchday_options = get_unique_order(
         [m.matchday for m in matches_list if m.leagueDivisionId == division.id]
     )
-    matchdays_values = range(len(matchday_options))
+    if len(matchday_options) == 0:
+        matchdays_values = (1, 1)
+        matchdays_values_opt = (1, 1)
+        format_func = lambda v: v
+    else:
+        matchdays_values = range(len(matchday_options))
+        matchdays_values_opt = (0, max(matchdays_values))
+        format_func = lambda v: matchday_options[v]
 
     matchdays_select = st.select_slider(
         "Matchdays",
         options=matchdays_values,
-        value=(0, max(matchdays_values)),
-        format_func=(lambda v: matchday_options[v]),
+        value=matchdays_values_opt,
+        format_func=format_func,
     )
 
     return matchdays_select
@@ -163,6 +175,10 @@ def main():
 
     div_select = get_div_select(divisions_list)
     matchdays_select = get_matchday_select(matches_list, div_select)
+
+    if div_select is None:
+        st.error("No matches found")
+        return
 
     info_matches = build_match_db(matches_list, div_select, matchdays_select)
     st.dataframe(info_matches)

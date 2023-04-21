@@ -88,6 +88,59 @@ def create_teams(db: Prisma, excel: UploadedFile) -> int:
     return teams
 
 
+def create_team_divisions_relationship(db: Prisma, excel: UploadedFile) -> int:
+    players_df = pd.read_excel(excel, "Players", na_values="---")
+
+    players_class = db.leagueplayer.find_many()
+    players_dict = (
+        pd.DataFrame([dict(s) for s in players_class])
+        .loc[:, ["id", "name"]]
+        .set_index("name")
+        .to_dict("dict")["id"]
+    )
+
+    players_df["player_id"] = players_df["PLAYER"].apply(
+        lambda x: players_dict[str(x)] if str(x) in players_dict.keys() else -1
+    )
+
+    players_df = players_df.iloc[:, 1:].set_index("player_id")
+
+    teams_class = db.leagueteam.find_many()
+    teams_dict = (
+        pd.DataFrame([dict(s) for s in teams_class])
+        .loc[:, ["id", "name"]]
+        .set_index("name")
+        .to_dict("dict")["id"]
+    )
+
+    players_teams_df = players_df["TEAM"].apply(
+        lambda x: teams_dict[x] if x in teams_dict.keys() else -1
+    )
+
+    data_list_active = []
+    for k, v in players_teams_df.items():
+        if k != -1 and v != -1:
+            data_point = {"leaguePlayerId": k, "leagueTeamId": v, "active": True}
+            data_list_active.append(data_point)
+
+    active_players = db.leagueplayerteams.create_many(data=data_list_active)
+
+    players_old_teams_df = players_df.loc[
+        :, players_df.columns.str.contains("team")
+    ].applymap(lambda x: teams_dict[x] if x in teams_dict.keys() else -1)
+
+    data_list_inactive = []
+    for col in players_old_teams_df.columns:
+        for k, v in players_old_teams_df[col].items():
+            if k != -1 and v != -1:
+                data_point = {"leaguePlayerId": k, "leagueTeamId": v, "active": False}
+                data_list_inactive.append(data_point)
+
+    inactive_players = db.leagueplayerteams.create_many(data=data_list_inactive)
+
+    return active_players + inactive_players
+
+
 def create_players(db: Prisma, excel: UploadedFile) -> int:
     players_df = pd.read_excel(
         excel, "Players", na_values="---", dtype=object

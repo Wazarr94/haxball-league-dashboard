@@ -1,5 +1,7 @@
 import copy
 
+from typing import Optional
+
 import streamlit as st
 from prisma import Prisma
 from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
@@ -30,7 +32,7 @@ def select_match(
     divisions: list[LeagueDivision],
     matches: list[LeagueMatch],
     teams: list[LeagueTeam],
-):
+) -> Optional[LeagueMatch]:
     matchday_options = {
         div.id: list(
             dict.fromkeys([m.matchday for m in matches if m.leagueDivisionId == div.id])
@@ -42,7 +44,11 @@ def select_match(
     with col1:
         div_name_list = [d.name for d in divisions]
         div_name_select = st.selectbox("Division", div_name_list)
-        div_select = [d for d in divisions if d.name == div_name_select][0]
+        div_list = [d for d in divisions if d.name == div_name_select]
+        if len(div_list) == 0:
+            div_select = None
+        else:
+            div_select = div_list[0]
     with col2:
         st.text("")
         st.text("")
@@ -55,7 +61,10 @@ def select_match(
         team_options.sort()
         team_select = st.selectbox("Team", team_options)
 
-    matchdays_options_div = matchday_options[div_select.id]
+    if div_select is None:
+        matchdays_options_div = [1, 1]
+    else:
+        matchdays_options_div = matchday_options[div_select.id]
     matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
 
     match_list_filter: list[LeagueMatch] = []

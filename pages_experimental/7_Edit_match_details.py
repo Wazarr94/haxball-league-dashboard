@@ -39,7 +39,11 @@ def select_match(
             "Division",
             [d.name for d in divisions],
         )
-        div_select = [d for d in divisions if d.name == div_name_select][0]
+        div_list = [d for d in divisions if d.name == div_name_select]
+        if len(div_list) == 0:
+            div_select = None
+        else:
+            div_select = div_list[0]
     with col2:
         st.text("")
         st.text("")
@@ -58,7 +62,10 @@ def select_match(
             team_options,
         )
 
-    matchdays_options_div = matchday_options[div_select.id]
+    if div_select is None:
+        matchdays_options_div = [1, 1]
+    else:
+        matchdays_options_div = matchday_options[div_select.id]
     matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
 
     match_list_filter: list[LeagueMatch] = []
@@ -223,7 +230,6 @@ def process_edit(
     period3_id: str,
     replay_url: str,
 ):
-
     db.leaguematchdetail.update(
         where={
             "leagueMatchId_leagueTeamId": {

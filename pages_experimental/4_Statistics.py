@@ -26,18 +26,24 @@ from utils.utils import (
     display_gametime,
     display_pass_success,
 )
-from utils.constants import GAME_TIME
+from utils.constants import GAME_TIME, TEAM_SIZE
 
 hide_streamlit_elements()
 add_indentation()
 
 
-def get_div_team_select(divisions: list[LeagueDivision], teams: list[LeagueTeam]):
+def get_div_team_select(
+    divisions: list[LeagueDivision], teams: list[LeagueTeam]
+) -> tuple[Optional[LeagueDivision], Optional[str]]:
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
         div_name_list = [d.name for d in divisions]
         div_name_select = st.selectbox("Division", div_name_list)
-        div_select = [d for d in divisions if d.name == div_name_select][0]
+        div_list = [d for d in divisions if d.name == div_name_select]
+        if len(div_list) == 0:
+            div_select = None
+        else:
+            div_select = div_list[0]
     with col2:
         st.text("")
         st.text("")
@@ -56,6 +62,8 @@ def get_max_matchday_stats(matches: list[LeagueMatch], division: LeagueDivision)
     matches_div = [m for m in matches if m.leagueDivisionId == division.id]
     md_list = get_unique_order([m.matchday for m in matches_div])
     md_dict = {v: i for i, v in enumerate(md_list)}
+    if len(md_dict) == 0:
+        return 0
     md_val_not_played = [
         md_dict[m.matchday] for m in matches_div if not is_match_played(m)
     ]
@@ -151,7 +159,7 @@ def display_options_stats():
         filter_position_check = st.checkbox("Filter position", False)
     with col4:
         if filter_position_check:
-            positions_choose = [*range(1, 5)]
+            positions_choose = list(range(1, TEAM_SIZE + 1))
         else:
             positions_choose = []
         filter_position = st.selectbox(
@@ -362,7 +370,10 @@ def main():
 
     div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
 
-    matchdays_options_div = matchday_options[div_select.id]
+    if div_select is None:
+        matchdays_options_div = [1, 1]
+    else:
+        matchdays_options_div = matchday_options[div_select.id]
     matchdays_values = range(len(matchdays_options_div))
     matchday_max = get_max_matchday_stats(matches_list, div_select)
 
@@ -373,9 +384,12 @@ def main():
         format_func=(lambda v: matchdays_options_div[v]),
     )
 
-    match_list_filter = filter_matches(
-        matches_list, team_name_select, div_select.name, matchdays_select
-    )
+    if div_select is None:
+        match_list_filter = []
+    else:
+        match_list_filter = filter_matches(
+            matches_list, team_name_select, div_select.name, matchdays_select
+        )
 
     stats_players = get_stats(
         match_list_filter,

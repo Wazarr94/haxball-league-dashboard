@@ -92,7 +92,11 @@ def main():
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
         div_name_select = st.selectbox("Division", [d.name for d in divisions_list])
-        div_select = [d for d in divisions_list if d.name == div_name_select][0]
+        div_list = [d for d in divisions_list if d.name == div_name_select]
+        if len(div_list) == 0:
+            div_select = None
+        else:
+            div_select = div_list[0]
     with col2:
         st.text("")
         st.text("")
@@ -113,9 +117,13 @@ def main():
         st.write("")
         filter_by_md = col1.checkbox("Filter MD", False)
     with col2:
+        if div_select is None:
+            matchdays_options_div = [1, 1]
+        else:
+            matchdays_options_div = matchday_options[div_select.id]
         matchday_select = col2.select_slider(
             "Matchday",
-            options=matchday_options[div_select.id],
+            options=matchdays_options_div,
             disabled=(not filter_by_md),
         )
         if not filter_by_md:
@@ -135,10 +143,13 @@ def main():
         pivot=True,
     )
 
-    if use_team_filter:
-        pagination_nb = pagination_team[div_select.id]
+    if div_select is None:
+        pagination_nb = 1
     else:
-        pagination_nb = pagination_division[div_select.id]
+        if use_team_filter:
+            pagination_nb = pagination_team[div_select.id]
+        else:
+            pagination_nb = pagination_division[div_select.id]
 
     gb.configure_pagination(
         enabled=True,
