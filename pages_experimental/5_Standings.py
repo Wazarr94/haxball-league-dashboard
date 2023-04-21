@@ -20,6 +20,7 @@ add_indentation()
 @dataclass
 class StandingTeam:
     name: str
+    initials: str
     games: int
     wins: int
     draws: int
@@ -70,6 +71,7 @@ def build_match_db_team(
     md_dict = {v: i for i, v in enumerate(md_list)}
     standing_team = StandingTeam(
         name=team.name,
+        initials=team.initials,
         games=0,
         wins=0,
         draws=0,
@@ -124,7 +126,7 @@ def build_match_db(
     for team in division.teams:
         standing = build_match_db_team(match_list, team, matchdays_select)
         obj_standing = {
-            "team": standing.name,
+            "team": standing.initials,
             "GP": standing.games,
             "W": standing.wins,
             "D": standing.draws,

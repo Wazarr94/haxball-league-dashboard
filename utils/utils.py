@@ -8,7 +8,7 @@ from typing import Literal, Optional
 import streamlit as st
 from prisma.models import LeagueMatch, LeaguePlayer, Period, PlayerStats
 
-from utils.constants import GAME_TIME, CS_TIME_NECESSARY
+from utils.constants import GAME_TIME, CS_TIME_NECESSARY, DEFWIN_SCORE
 
 
 class GamePosition(IntEnum):
@@ -40,9 +40,9 @@ class InfoMatch:
 
 def get_info_match(match: LeagueMatch) -> InfoMatch:
     if match.defwin == 1:
-        return InfoMatch((5, 0), (0, 0), (0, 0))
+        return InfoMatch((DEFWIN_SCORE, 0), (0, 0), (0, 0))
     elif match.defwin == 2:
-        return InfoMatch((0, 5), (0, 0), (0, 0))
+        return InfoMatch((0, DEFWIN_SCORE), (0, 0), (0, 0))
     if len(match.periods) == 0:
         return InfoMatch((-1, -1), (0, 0), (0, 0))
     md_1 = match.detail[0]

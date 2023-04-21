@@ -5,6 +5,7 @@ from st_pages import add_indentation
 
 from utils.data import get_divisions, get_teams, init_connection
 from utils.utils import hide_streamlit_elements
+from utils.constants import LEAGUE_TEAM_SIZE_MAX
 
 hide_streamlit_elements()
 add_indentation()
@@ -33,7 +34,7 @@ def display_players(players: list[LeaguePlayer], nb_cols: int = 2) -> None:
 
 def display_active_players(team: LeagueTeam):
     active_players = [p.player for p in team.players if p.active]
-    st.write(f"**Active players ({len(active_players)}/12):**")
+    st.write(f"**Active players ({len(active_players)}/{LEAGUE_TEAM_SIZE_MAX}):**")
 
     display_players(active_players)
 

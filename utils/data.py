@@ -23,11 +23,17 @@ except RuntimeError:
     generate_prisma_client()
     from prisma import Prisma
 
-from prisma.models import LeagueDivision  # noqa
+from prisma.models import (  # noqa
+    LeagueDivision,
+    LeagueMatch,
+    LeaguePlayer,
+    LeagueTeam,
+    Period,
+)
 
 
 @st.experimental_singleton
-def init_connection():
+def init_connection() -> Prisma:
     url = os.environ["DATABASE_URL"]
     db = Prisma(
         datasource={
@@ -39,7 +45,7 @@ def init_connection():
 
 
 @st.experimental_singleton
-def get_matches(_db: Prisma):
+def get_matches(_db: Prisma) -> list[LeagueMatch]:
     matches = _db.leaguematch.find_many(
         include={
             "LeagueDivision": True,
@@ -86,7 +92,7 @@ def get_divisions(_db: Prisma) -> list[LeagueDivision]:
 
 
 @st.experimental_singleton
-def get_teams(_db: Prisma):
+def get_teams(_db: Prisma) -> list[LeagueTeam]:
     teams = _db.leagueteam.find_many(
         include={
             "division": True,
@@ -102,7 +108,7 @@ def get_teams(_db: Prisma):
 
 
 @st.experimental_singleton
-def get_players(_db: Prisma):
+def get_players(_db: Prisma) -> list[LeaguePlayer]:
     players = _db.leagueplayer.find_many(
         include={
             "teams": {
@@ -117,7 +123,7 @@ def get_players(_db: Prisma):
 
 
 @st.experimental_singleton
-def get_periods(_db: Prisma):
+def get_periods(_db: Prisma) -> list[Period]:
     periods = _db.period.find_many(
         order={"id": "asc"},
     )

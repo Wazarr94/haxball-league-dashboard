@@ -39,10 +39,10 @@ def build_match_db(match_list: list[LeagueMatch]):
         score = f"{info_match.score[0]}-{info_match.score[1]}"
         team1 = ""
         if len(m.detail) > 0:
-            team1 = m.detail[0].team.name
+            team1 = m.detail[0].team.initials
         team2 = ""
         if len(m.detail) > 1:
-            team2 = m.detail[1].team.name
+            team2 = m.detail[1].team.initials
         if info_match.score[0] == -1:
             score = ""
         obj = {

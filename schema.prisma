@@ -81,20 +81,28 @@ model PlayerStats {
 }
 
 model LeagueDivision {
-  id      Int           @id @default(autoincrement())
-  name    String        @unique
-  teams   LeagueTeam[]
+  id      Int                   @id @default(autoincrement())
+  name    String                @unique
   matches LeagueMatch[]
+  teams   LeagueTeamDivisions[]
 }
 
 model LeagueTeam {
-  id               Int                 @id @default(autoincrement())
-  division         LeagueDivision      @relation(fields: [leagueDivisionId], references: [id], onDelete: Cascade)
+  id           Int                   @id @default(autoincrement())
+  name         String                @unique
+  initials     String
+  players      LeaguePlayerTeams[]
+  matchDetails LeagueMatchDetail[]
+  divisions    LeagueTeamDivisions[]
+}
+
+model LeagueTeamDivisions {
+  team             LeagueTeam     @relation(fields: [leagueTeamId], references: [id], onDelete: Cascade)
+  leagueTeamId     Int
+  division         LeagueDivision @relation(fields: [leagueDivisionId], references: [id], onDelete: Cascade)
   leagueDivisionId Int
-  name             String              @unique
-  initials         String
-  players          LeaguePlayerTeams[]
-  matchDetails     LeagueMatchDetail[]
+
+  @@id([leagueTeamId, leagueDivisionId])
 }
 
 model LeaguePlayer {
