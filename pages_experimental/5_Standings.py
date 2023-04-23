@@ -48,8 +48,8 @@ def get_div_select(divisions: list[LeagueDivision]) -> Optional[LeagueDivision]:
 def format_matchday(value: int, matchday_options: list[int], empty: bool):
     if empty:
         return value
-    else:
-        return matchday_options[value]
+
+    return matchday_options[value]
 
 
 def get_matchday_select(matches_list: list[LeagueMatch], division: LeagueDivision):
@@ -135,6 +135,9 @@ def build_match_db(
     division: LeagueDivision,
     matchdays_select: tuple[int],
 ):
+    if len(division.teams) == 0:
+        return None
+
     standings = []
     for team_div in division.teams:
         standing = build_match_db_team(match_list, team_div.team, matchdays_select)
@@ -182,6 +185,10 @@ def main():
         return
 
     info_matches = build_match_db(matches_list, div_select, matchdays_select)
+    if info_matches is None:
+        st.error("No teams found")
+        return
+
     st.dataframe(info_matches)
 
 

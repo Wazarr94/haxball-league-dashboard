@@ -33,7 +33,7 @@ add_indentation()
 
 
 def get_div_team_select(
-    divisions: list[LeagueDivision], teams: list[LeagueTeam]
+    divisions: list[LeagueDivision],
 ) -> tuple[Optional[LeagueDivision], Optional[str]]:
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
@@ -362,7 +362,7 @@ def main():
 
     st.write("# S1 preseason statistics")
 
-    div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
+    div_select, team_name_select = get_div_team_select(divisions_list)
 
     if div_select is None:
         matchdays_options_div = [1, 1]

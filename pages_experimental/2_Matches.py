@@ -3,7 +3,7 @@ from typing import Optional
 import pandas as pd
 import streamlit as st
 from prisma import Prisma
-from prisma.models import LeagueMatch
+from prisma.models import LeagueDivision, LeagueMatch
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from st_pages import add_indentation
@@ -13,6 +13,51 @@ from utils.utils import get_info_match, get_unique_order, hide_streamlit_element
 
 hide_streamlit_elements()
 add_indentation()
+
+
+def get_div_team_select(
+    divisions: list[LeagueDivision],
+) -> tuple[Optional[LeagueDivision], Optional[str], bool]:
+    col1, col2, col3 = st.columns([3, 2, 9])
+    with col1:
+        div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
+    with col2:
+        st.text("")
+        st.text("")
+        use_team_filter = st.checkbox("Filter team", False)
+    with col3:
+        if use_team_filter:
+            team_options = [td.team.name for td in div_select.teams]
+        else:
+            team_options = []
+        team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
+
+    return div_select, team_select, use_team_filter
+
+
+def get_md_select(
+    div: Optional[LeagueDivision], matchday_options: dict[int, list[str]]
+) -> Optional[str]:
+    col1, col2 = st.columns([2, 8])
+    with col1:
+        st.write("")
+        st.write("")
+        filter_by_md = col1.checkbox("Filter MD", False)
+    with col2:
+        if div is None:
+            matchdays_options_div = [1, 1]
+        else:
+            matchdays_options_div = matchday_options[div.id]
+
+        matchday_select = col2.select_slider(
+            "Matchday",
+            options=matchdays_options_div,
+            disabled=(not filter_by_md),
+        )
+        if not filter_by_md:
+            matchday_select = None
+
+    return matchday_select
 
 
 def filter_matches(
@@ -58,6 +103,44 @@ def build_match_db(match_list: list[LeagueMatch]):
     return object_df
 
 
+def get_grid_options(
+    df: pd.DataFrame,
+    div: Optional[LeagueDivision],
+    matches: list[LeagueMatch],
+    matchday_options: dict[int, list[str]],
+    use_team_filter: bool,
+):
+    first_md: str = matchday_options[div.id][0]
+    matches_div = [m for m in matches if div.id == m.leagueDivisionId]
+
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_default_column()
+    gb.configure_column(
+        "date",
+        type=["dateColumnFilter", "customDateTimeFormat"],
+        custom_format_string="dd/MM/yy",
+        pivot=True,
+    )
+
+    if div is None:
+        pagination_nb = 1
+    else:
+        if use_team_filter:
+            pagination_nb = len(matchday_options[div.id]) / 2
+        else:
+            pagination_nb = len([m for m in matches_div if m.matchday == first_md])
+
+    gb.configure_pagination(
+        enabled=True,
+        paginationAutoPageSize=False,
+        paginationPageSize=pagination_nb,
+    )
+    gb.configure_grid_options()
+    grid_options = gb.build()
+
+    return grid_options
+
+
 def main():
     if "db" not in st.session_state:
         db = init_connection()
@@ -75,80 +158,19 @@ def main():
         for div in divisions_list
     }
 
-    pagination_division = {}
-    for div in divisions_list:
-        first_md: str = matchday_options[div.id][0]
-        matches_div = [m for m in matches_list if div.id == m.leagueDivisionId]
-        pagination_div = len([m for m in matches_div if m.matchday == first_md])
-        pagination_division[div.id] = pagination_div
-
-    pagination_team = {
-        div.id: len(matchday_options[div.id]) / 2 for div in divisions_list
-    }
-
     st.write("# S1 preseason matches")
 
-    col1, col2, col3 = st.columns([3, 2, 9])
-    with col1:
-        div = st.selectbox("Division", divisions_list, format_func=lambda d: d.name)
-    with col2:
-        st.text("")
-        st.text("")
-        use_team_filter = st.checkbox("Filter team", False)
-    with col3:
-        if use_team_filter:
-            team_options = [td.team for td in div.teams]
-        else:
-            team_options = []
-        team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
-
-    col1, col2 = st.columns([2, 8])
-    with col1:
-        st.write("")
-        st.write("")
-        filter_by_md = col1.checkbox("Filter MD", False)
-    with col2:
-        if div is None:
-            matchdays_options_div = [1, 1]
-        else:
-            matchdays_options_div = matchday_options[div.id]
-        matchday_select = col2.select_slider(
-            "Matchday",
-            options=matchdays_options_div,
-            disabled=(not filter_by_md),
-        )
-        if not filter_by_md:
-            matchday_select = None
+    div, team_select, use_team_filter = get_div_team_select(divisions_list)
+    matchday_select = get_md_select(div, matchday_options)
 
     match_list_filter = filter_matches(
         matches_list, team_select, div.name, matchday_select
     )
 
     df = build_match_db(match_list_filter)
-    gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_default_column()
-    gb.configure_column(
-        "date",
-        type=["dateColumnFilter", "customDateTimeFormat"],
-        custom_format_string="dd/MM/yy",
-        pivot=True,
+    grid_options = get_grid_options(
+        df, div, matches_list, matchday_options, use_team_filter
     )
-
-    if div is None:
-        pagination_nb = 1
-    else:
-        if use_team_filter:
-            pagination_nb = pagination_team[div.id]
-        else:
-            pagination_nb = pagination_division[div.id]
-
-    gb.configure_pagination(
-        enabled=True,
-        paginationAutoPageSize=False,
-        paginationPageSize=pagination_nb,
-    )
-    gb.configure_grid_options()
-    grid_options = gb.build()
 
     AgGrid(df, gridOptions=grid_options, fit_columns_on_grid_load=True)
 
