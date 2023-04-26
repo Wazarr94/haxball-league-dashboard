@@ -142,7 +142,7 @@ def build_match_db(
     for team_div in division.teams:
         standing = build_match_db_team(match_list, team_div.team, matchdays_select)
         obj_standing = {
-            "team": standing.initials,
+            "team": standing.name,
             "GP": standing.games,
             "W": standing.wins,
             "D": standing.draws,
