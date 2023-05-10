@@ -86,13 +86,13 @@ def select_update_teams(teams: list[LeagueTeam], match: LeagueMatch):
                 "Team 1",
                 team_choices,
                 index=team_choices_id.index(match.detail[0].team.id),
-                format_func=lambda t: t.name,
+                format_func=lambda t: t.name if t is not None else "",
             )
         else:
             team1_select = st.selectbox(
                 "Team 1",
                 [None] + team_choices,
-                format_func=lambda t: t.name,
+                format_func=lambda t: t.name if t is not None else "",
             )
     with col2:
         if len(match.detail) > 1:
@@ -100,13 +100,17 @@ def select_update_teams(teams: list[LeagueTeam], match: LeagueMatch):
                 "Team 2",
                 team_choices,
                 index=team_choices_id.index(match.detail[1].team.id),
-                format_func=lambda t: t.name,
+                format_func=lambda t: t.name if t is not None else "",
             )
         else:
+            if team1_select is not None:
+                team_choices_new = [t for t in team_choices if t.id != team1_select.id]
+            else:
+                team_choices_new = [t for t in team_choices]
             team2_select = st.selectbox(
                 "Team 2",
-                [None] + [t for t in team_choices if t.id != team1_select.id],
-                format_func=lambda t: t.name,
+                [None] + team_choices_new,
+                format_func=lambda t: t.name if t is not None else "",
             )
     return team1_select, team2_select
 
