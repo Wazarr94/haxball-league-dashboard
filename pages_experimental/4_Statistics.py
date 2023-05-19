@@ -73,16 +73,15 @@ def filter_matches(
     division: LeagueDivision,
     matchdays_select: tuple[str],
 ):
-    md_list = get_unique_order([m.matchday for m in matches])
+    matches_div = [m for m in matches if m.leagueDivisionId == division.id]
+    md_list = get_unique_order([m.matchday for m in matches_div])
     md_dict = {v: i for i, v in enumerate(md_list)}
     match_list_filter = []
-    for m in matches:
+    for m in matches_div:
         if (
             md_dict[m.matchday] < matchdays_select[0]
             or md_dict[m.matchday] > matchdays_select[1]
         ):
-            continue
-        if m.LeagueDivision.name != division:
             continue
         if team_name is None or any([md.team.name == team_name for md in m.detail]):
             match_list_filter.append(m)
@@ -382,7 +381,7 @@ def main():
         match_list_filter = []
     else:
         match_list_filter = filter_matches(
-            matches_list, team_name_select, div_select.name, matchdays_select
+            matches_list, team_name_select, div_select, matchdays_select
         )
 
     stats_players = get_stats(

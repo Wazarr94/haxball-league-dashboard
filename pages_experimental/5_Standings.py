@@ -77,10 +77,12 @@ def get_matchday_select(matches_list: list[LeagueMatch], division: LeagueDivisio
 
 def build_match_db_team(
     match_list: list[LeagueMatch],
+    division: LeagueDivision,
     team: LeagueTeam,
-    matchdays_select: tuple[int],
+    matchdays_select: tuple[int, int],
 ):
-    md_list = get_unique_order([m.matchday for m in match_list])
+    matches_div = [m for m in match_list if m.leagueDivisionId == division.id]
+    md_list = get_unique_order([m.matchday for m in matches_div])
     md_dict = {v: i for i, v in enumerate(md_list)}
     standing_team = StandingTeam(
         name=team.name,
@@ -93,11 +95,11 @@ def build_match_db_team(
         goals_scored=0,
         goals_conceded=0,
     )
-    for m in match_list:
+    for m in matches_div:
         info_match = get_info_match(m)
         if info_match.score[0] == -1 or len(m.detail) < 2:
             continue
-        if m.detail[0].team.name != team.name and m.detail[1].team.name != team.name:
+        if not any([md.team.name == team.name for md in m.detail]):
             continue
         if (
             md_dict[m.matchday] < matchdays_select[0]
@@ -140,7 +142,9 @@ def build_match_db(
 
     standings = []
     for team_div in division.teams:
-        standing = build_match_db_team(match_list, team_div.team, matchdays_select)
+        standing = build_match_db_team(
+            match_list, division, team_div.team, matchdays_select
+        )
         obj_standing = {
             "team": standing.name,
             "GP": standing.games,

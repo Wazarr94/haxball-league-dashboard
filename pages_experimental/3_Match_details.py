@@ -1,5 +1,4 @@
 import copy
-
 from typing import Optional
 
 import streamlit as st
@@ -20,6 +19,7 @@ from utils.utils import (
     display_gametime,
     get_info_match,
     get_statsheet_list,
+    get_unique_order,
     hide_streamlit_elements,
     sum_sheets,
 )
@@ -33,13 +33,6 @@ def select_match(
     matches: list[LeagueMatch],
     teams: list[LeagueTeam],
 ) -> Optional[LeagueMatch]:
-    matchday_options = {
-        div.id: list(
-            dict.fromkeys([m.matchday for m in matches if m.leagueDivisionId == div.id])
-        )
-        for div in divisions
-    }
-
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
         div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
@@ -55,20 +48,24 @@ def select_match(
         team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
 
     if div_select is None:
+        matches_div = []
         matchdays_options_div = [1, 1]
     else:
-        matchdays_options_div = matchday_options[div_select.id]
+        matches_div = [m for m in matches if m.leagueDivisionId == div_select.id]
+        md_list = get_unique_order([m.matchday for m in matches_div])
+        matchdays_options_div = {v: i for i, v in enumerate(md_list)}
+
     matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
 
     match_list_filter: list[LeagueMatch] = []
-    for m in matches:
+    for m in matches_div:
         if m.matchday != matchday_select:
-            continue
-        if m.LeagueDivision.name != div_select.name:
             continue
         if len(m.periods) == 0:
             continue
-        if team_select is None or any([md.team.name == team_select for md in m.detail]):
+        if team_select is None or any(
+            [md.team.name == team_select.name for md in m.detail]
+        ):
             match_list_filter.append(m)
 
     match = st.selectbox("Match", match_list_filter, format_func=lambda m: m.title)

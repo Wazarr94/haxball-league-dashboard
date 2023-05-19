@@ -1,3 +1,4 @@
+import math
 from typing import Optional
 
 import pandas as pd
@@ -30,13 +31,13 @@ def get_div_team_select(
             team_options = [td.team.name for td in div_select.teams]
         else:
             team_options = []
-        team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
+        team_select = st.selectbox("Team", team_options)
 
     return div_select, team_select, use_team_filter
 
 
 def get_md_select(
-    div: Optional[LeagueDivision], matchday_options: dict[int, list[str]]
+    div: Optional[LeagueDivision], matches: list[LeagueMatch]
 ) -> Optional[str]:
     col1, col2 = st.columns([2, 8])
     with col1:
@@ -47,7 +48,9 @@ def get_md_select(
         if div is None:
             matchdays_options_div = [1, 1]
         else:
-            matchdays_options_div = matchday_options[div.id]
+            matches_div = [m for m in matches if m.leagueDivisionId == div.id]
+            md_list = get_unique_order([m.matchday for m in matches_div])
+            matchdays_options_div = {v: i for i, v in enumerate(md_list)}
 
         matchday_select = col2.select_slider(
             "Matchday",
@@ -63,14 +66,13 @@ def get_md_select(
 def filter_matches(
     matches: list[LeagueMatch],
     team_name: Optional[str],
-    division_name: str,
+    division: LeagueDivision,
     matchday_select: Optional[str],
 ):
+    matches_div = [m for m in matches if m.leagueDivisionId == division.id]
     match_list_filter = []
-    for m in matches:
+    for m in matches_div:
         if matchday_select is not None and m.matchday != matchday_select:
-            continue
-        if m.LeagueDivision.name != division_name:
             continue
         if team_name is None or any([md.team.name == team_name for md in m.detail]):
             match_list_filter.append(m)
@@ -107,11 +109,12 @@ def get_grid_options(
     df: pd.DataFrame,
     div: Optional[LeagueDivision],
     matches: list[LeagueMatch],
-    matchday_options: dict[int, list[str]],
     use_team_filter: bool,
 ):
-    first_md: str = matchday_options[div.id][0]
-    matches_div = [m for m in matches if div.id == m.leagueDivisionId]
+    matches_div = [m for m in matches if m.leagueDivisionId == div.id]
+    md_list = get_unique_order([m.matchday for m in matches_div])
+    matchdays_options_div = {v: i for i, v in enumerate(md_list)}
+    first_md: str = md_list[0]
 
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column()
@@ -126,7 +129,7 @@ def get_grid_options(
         pagination_nb = 1
     else:
         if use_team_filter:
-            pagination_nb = len(matchday_options[div.id]) / 2
+            pagination_nb = math.ceil(len(matchdays_options_div) / 2)
         else:
             pagination_nb = len([m for m in matches_div if m.matchday == first_md])
 
@@ -151,26 +154,15 @@ def main():
     matches_list = get_matches(db)
     divisions_list = get_divisions(db)
 
-    matchday_options = {
-        div.id: get_unique_order(
-            [m.matchday for m in matches_list if m.leagueDivisionId == div.id]
-        )
-        for div in divisions_list
-    }
-
     st.write("# S1 preseason matches")
 
     div, team_select, use_team_filter = get_div_team_select(divisions_list)
-    matchday_select = get_md_select(div, matchday_options)
+    matchday_select = get_md_select(div, matches_list)
 
-    match_list_filter = filter_matches(
-        matches_list, team_select, div.name, matchday_select
-    )
+    match_list_filter = filter_matches(matches_list, team_select, div, matchday_select)
 
     df = build_match_db(match_list_filter)
-    grid_options = get_grid_options(
-        df, div, matches_list, matchday_options, use_team_filter
-    )
+    grid_options = get_grid_options(df, div, matches_list, use_team_filter)
 
     AgGrid(df, gridOptions=grid_options, fit_columns_on_grid_load=True)
 
