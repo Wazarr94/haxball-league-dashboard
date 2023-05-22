@@ -1,8 +1,10 @@
+import io
 from dataclasses import dataclass
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import polars as pl
 import streamlit as st
 from prisma import Prisma
 from prisma.types import (
@@ -11,7 +13,12 @@ from prisma.types import (
 )
 from st_pages import add_indentation
 
-from utils.data import init_connection
+from utils.data import (
+    get_divisions,
+    get_players,
+    get_teams,
+    init_connection,
+)
 from utils.utils import hide_streamlit_elements
 
 hide_streamlit_elements()
@@ -297,32 +304,32 @@ def clear_league_db(db: Prisma) -> None:
     db.leaguematchdetail.delete_many(where={})
 
 
-def clear_db_system(db: Prisma) -> None:
-    button = st.button("Clear database")
+def clear_league_db_system(db: Prisma) -> None:
+    button = st.button("Clear league database")
     if button:
         clear_league_db(db)
-        st.success("Database cleared")
+        st.success("League database cleared")
 
 
 def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
     try:
         create_divisions(db, excel_file)
     except Exception as e:
-        st.error(f"Error while creating divisions. Clearing database.\n {e}")
+        st.error(f"Error while creating divisions. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
     try:
         create_teams(db, excel_file)
     except Exception as e:
-        st.error(f"Error while creating teams. Clearing database.\n {e}")
+        st.error(f"Error while creating teams. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
     try:
         create_players(db, excel_file)
     except Exception as e:
-        st.error(f"Error while creating players. Clearing database.\n {e}")
+        st.error(f"Error while creating players. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
@@ -330,7 +337,7 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
         create_team_players_relationship(db, excel_file)
     except Exception as e:
         st.error(
-            f"Error while creating team players relationship. Clearing database.\n {e}"
+            f"Error while creating team players relationship. Clearing database.\n\n{e}"
         )
         clear_league_db(db)
         return False
@@ -338,18 +345,108 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
     try:
         create_matches(db, excel_file)
     except Exception as e:
-        st.error(f"Error while creating matches. Clearing database.\n {e}")
+        st.error(f"Error while creating matches. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
     try:
         create_matches_details(db, excel_file)
     except Exception as e:
-        st.error(f"Error while creating match details. Clearing database.\n {e}")
+        st.error(f"Error while creating match details. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
     return True
+
+
+def download_league_data(
+    divisions_df: pl.DataFrame,
+    teams_df: pl.DataFrame,
+    matches_df: pl.DataFrame,
+    players_df: pl.DataFrame,
+) -> None:
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+        divisions_df.to_pandas().to_excel(writer, sheet_name="Divisions", index=False)
+        teams_df.to_pandas().to_excel(writer, sheet_name="Teams", index=False)
+        matches_df.to_pandas().to_excel(writer, sheet_name="Matches", index=False)
+        players_df.to_pandas().to_excel(writer, sheet_name="Players", index=False)
+    return buffer
+
+
+def download_league_data_system(db: Prisma) -> None:
+    divisions_list = get_divisions(db)
+    teams_list = get_teams(db)
+    players_list = get_players(db)
+
+    dnames_df = pl.DataFrame(divisions_list).select("name")
+
+    teams_clean = [
+        {
+            "Division_name": [td.division.name for td in t.divisions],
+            "name": t.name,
+            "initials": t.initials,
+        }
+        for t in teams_list
+    ]
+    teams_df = (
+        pl.DataFrame(teams_clean)
+        .explode("Division_name")
+        .sort(["Division_name", "name"])
+    )
+
+    players_clean = [
+        {
+            "PLAYER": p.name,
+            "nicks": p.nicks,
+            "active_team": [pt.team.name for pt in p.teams if pt.active],
+            "old_teams": [pt.team.name for pt in p.teams if not pt.active],
+        }
+        for p in players_list
+    ]
+    players_df = (
+        pl.DataFrame(players_clean)
+        .with_columns(
+            [pl.col("nicks").arr.get(i - 1).alias(f"nick{i}") for i in range(1, 7)],
+        )
+        .with_columns(
+            pl.col("active_team").arr.get(0).alias("TEAM"),
+        )
+        .with_columns(
+            [
+                pl.col("old_teams").arr.get(j - 1).alias(f"old team{j}")
+                for j in range(1, 3)
+            ],
+        )
+        .select(pl.exclude(["nicks", "active_team", "old_teams"]))
+    )
+
+    # TODO
+    matches_df = pl.DataFrame({"id": []})
+
+    st.download_button(
+        label="Download data as Excel",
+        data=download_league_data(dnames_df, teams_df, matches_df, players_df),
+        file_name="FUTLIFE_stats.xlsx",
+        mime="application/vnd.ms-excel",
+    )
+
+    return
+
+
+def clear_games_db(db: Prisma) -> None:
+    db.goaldetail.delete_many(where={})
+    db.goal.delete_many(where={})
+    db.period.delete_many(where={})
+    db.playerstats.delete_many(where={})
+    db.player.delete_many(where={})
+
+
+def clear_games_db_system(db: Prisma) -> None:
+    button = st.button("Clear games database")
+    if button:
+        clear_games_db(db)
+        st.success("Game database cleared")
 
 
 def main() -> None:
@@ -368,7 +465,19 @@ def main() -> None:
 
     st.title("Admin page")
 
-    clear_db_system(db)
+    st.write("## Download data")
+
+    download_league_data_system(db)
+
+    st.write("## Database management")
+
+    st.write("### Games database")
+
+    clear_games_db_system(db)
+
+    st.write("### League database")
+
+    clear_league_db_system(db)
 
     excel_file = st.file_uploader("Upload excel file", type=["xlsx"])
     if excel_file:
