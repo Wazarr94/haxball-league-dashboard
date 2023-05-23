@@ -24,7 +24,6 @@ add_indentation()
 
 def select_match(
     divisions: list[LeagueDivision],
-    teams: list[LeagueTeam],
     matches: list[LeagueMatch],
 ):
     matchday_options = {
@@ -62,7 +61,9 @@ def select_match(
             continue
         if m.LeagueDivision.name != div_select.name:
             continue
-        if team_select is None or any([md.team.name == team_select for md in m.detail]):
+        if team_select is None or any(
+            [md.team.name == team_select.name for md in m.detail]
+        ):
             match_list_filter.append(m)
 
     match_to_edit_title = st.selectbox("Match", [m.title for m in match_list_filter])
@@ -291,7 +292,7 @@ def main():
 
     st.write("# Add results")
 
-    match_to_edit = select_match(divisions_list, teams_list, matches_list)
+    match_to_edit = select_match(divisions_list, matches_list)
     if match_to_edit is None:
         return
 

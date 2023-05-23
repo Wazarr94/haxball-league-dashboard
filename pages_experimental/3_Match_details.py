@@ -31,7 +31,6 @@ add_indentation()
 def select_match(
     divisions: list[LeagueDivision],
     matches: list[LeagueMatch],
-    teams: list[LeagueTeam],
 ) -> Optional[LeagueMatch]:
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
@@ -183,13 +182,12 @@ def main():
     db: Prisma = st.session_state["db"]
 
     matches_list = get_matches(db)
-    teams_list = get_teams(db)
     divisions_list = get_divisions(db)
     players_list = get_players(db)
 
     st.write("# Match details")
 
-    match_play: LeagueMatch = select_match(divisions_list, matches_list, teams_list)
+    match_play: LeagueMatch = select_match(divisions_list, matches_list)
     if match_play is None:
         return
 
