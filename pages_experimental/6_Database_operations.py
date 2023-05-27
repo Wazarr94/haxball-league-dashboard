@@ -1,4 +1,5 @@
 import io
+import re
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -15,11 +16,12 @@ from st_pages import add_indentation
 
 from utils.data import (
     get_divisions,
+    get_matches,
     get_players,
     get_teams,
     init_connection,
 )
-from utils.utils import hide_streamlit_elements
+from utils.utils import get_info_match, hide_streamlit_elements
 
 hide_streamlit_elements()
 add_indentation()
@@ -368,15 +370,28 @@ def download_league_data(
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
         divisions_df.to_pandas().to_excel(writer, sheet_name="Divisions", index=False)
+        div_worksheet = writer.sheets["Divisions"]
+        div_worksheet.autofit()
+        
         teams_df.to_pandas().to_excel(writer, sheet_name="Teams", index=False)
+        teams_worksheet = writer.sheets["Teams"]
+        teams_worksheet.autofit()
+        
         matches_df.to_pandas().to_excel(writer, sheet_name="Matches", index=False)
+        matches_worksheet = writer.sheets["Matches"]
+        matches_worksheet.autofit()
+        
         players_df.to_pandas().to_excel(writer, sheet_name="Players", index=False)
+        players_worksheet = writer.sheets["Players"]
+        players_worksheet.autofit()
+        
     return buffer
 
 
 def download_league_data_system(db: Prisma) -> None:
     divisions_list = get_divisions(db)
     teams_list = get_teams(db)
+    matches_list = get_matches(db)
     players_list = get_players(db)
 
     dnames_df = pl.DataFrame(divisions_list).select("name")
@@ -421,13 +436,34 @@ def download_league_data_system(db: Prisma) -> None:
         .select(pl.exclude(["nicks", "active_team", "old_teams"]))
     )
 
-    # TODO
-    matches_df = pl.DataFrame({"id": []})
+    matches_clean = [
+        {
+            "id": m.id,
+            "Matchday": m.matchday,
+            "Date": m.date.date(),
+            "Time": m.date.time(),
+            "Team1_name": re.match(r".* - (.+) vs (.+)", m.title).group(1),
+            "Team2_name": re.match(r".* - (.+) vs (.+)", m.title).group(2),
+            "Division_name": m.LeagueDivision.name,
+            "Period1_id": m.periods[0].id if len(m.periods) > 0 else None,
+            "Period2_id": m.periods[1].id if len(m.periods) > 1 else None,
+            "Period3_id": m.periods[2].id if len(m.periods) > 2 else None,
+            "Score1": get_info_match(m).score[0] if m.periods else None,
+            "Score2": get_info_match(m).score[1] if m.periods else None,
+            "Inverse": not m.detail[0].startsRed if m.detail else None,
+            "Defwin": m.defwin,
+            "Add_red": m.addRed,
+            "Add_blue": m.addBlue,
+            "Replay": m.replayURL,
+        }
+        for m in matches_list
+    ]
+    matches_df = pl.DataFrame(matches_clean)
 
     st.download_button(
         label="Download data as Excel",
         data=download_league_data(dnames_df, teams_df, matches_df, players_df),
-        file_name="FUTLIFE_stats.xlsx",
+        file_name="FUTLIFE_league.xlsx",
         mime="application/vnd.ms-excel",
     )
 

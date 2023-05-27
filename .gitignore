@@ -7,3 +7,4 @@ poetry.lock
 login.private.yaml
 
 __pycache__/
+.vscode/
