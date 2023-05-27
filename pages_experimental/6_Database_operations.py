@@ -396,8 +396,10 @@ def download_league_data_system(db: Prisma) -> None:
 
     if len(divisions_list) == 0:
         dnames_df = pl.DataFrame({"name": []})
+        st.write(dnames_df)
     else:
-        dnames_df = pl.DataFrame(divisions_list).select("name")
+        div_clean = [{"name": d.name} for d in divisions_list]
+        dnames_df = pl.DataFrame(div_clean)
 
     if len(teams_list) == 0:
         teams_df = pl.DataFrame({"name": []})
@@ -410,11 +412,7 @@ def download_league_data_system(db: Prisma) -> None:
             }
             for t in teams_list
         ]
-        teams_df = (
-            pl.DataFrame(teams_clean)
-            .explode("Division_name")
-            .sort(["Division_name", "name"])
-        )
+        teams_df = pl.DataFrame(teams_clean).explode("Division_name")
     if len(players_list) == 0:
         players_df = pl.DataFrame({"PLAYER": []})
     else:
