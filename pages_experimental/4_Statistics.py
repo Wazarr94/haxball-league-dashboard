@@ -49,7 +49,7 @@ def get_div_team_select(
     with col3:
         if div_select is None:
             team_name_options = [t.name for t in teams]
-        if use_team_filter:
+        if use_team_filter and div_select is not None:
             team_name_options = [td.team.name for td in div_select.teams]
         else:
             team_name_options = []

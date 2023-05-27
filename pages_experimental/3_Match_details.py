@@ -10,7 +10,6 @@ from utils.data import (
     get_divisions,
     get_matches,
     get_players,
-    get_teams,
     init_connection,
 )
 from utils.utils import (
@@ -40,7 +39,7 @@ def select_match(
         st.text("")
         use_team_filter = st.checkbox("Filter team", False)
     with col3:
-        if use_team_filter:
+        if use_team_filter and div_select is not None:
             team_options = [td.team for td in div_select.teams]
         else:
             team_options = []

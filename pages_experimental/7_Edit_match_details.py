@@ -43,7 +43,7 @@ def select_match(
             True,
         )
     with col3:
-        if use_team_filter:
+        if use_team_filter and div_select is not None:
             team_options = [td.team for td in div_select.teams]
         else:
             team_options = []

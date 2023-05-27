@@ -16,7 +16,10 @@ def select_team_div(teams: list[LeagueTeam], divisions: list[LeagueDivision]):
     with col1:
         div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
     with col2:
-        team_options = [td.team for td in div_select.teams]
+        if div_select is not None:
+            team_options = [td.team for td in div_select.teams]
+        else:
+            team_options = []
         team_select = st.selectbox("Team", team_options, format_func=lambda t: t.name)
         if len(team_options) == 0:
             return None, div_select

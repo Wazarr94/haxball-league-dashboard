@@ -27,7 +27,7 @@ def get_div_team_select(
         st.text("")
         use_team_filter = st.checkbox("Filter team", False)
     with col3:
-        if use_team_filter:
+        if use_team_filter and div_select is not None:
             team_options = [td.team.name for td in div_select.teams]
         else:
             team_options = []
@@ -114,7 +114,7 @@ def get_grid_options(
     matches_div = [m for m in matches if m.leagueDivisionId == div.id]
     md_list = get_unique_order([m.matchday for m in matches_div])
     matchdays_options_div = {v: i for i, v in enumerate(md_list)}
-    first_md: str = md_list[0]
+    first_md: str = md_list[0] if len(md_list) > 0 else 1
 
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column()
@@ -127,11 +127,10 @@ def get_grid_options(
 
     if div is None:
         pagination_nb = 1
+    elif use_team_filter:
+        pagination_nb = math.ceil(len(matchdays_options_div) / 2)
     else:
-        if use_team_filter:
-            pagination_nb = math.ceil(len(matchdays_options_div) / 2)
-        else:
-            pagination_nb = len([m for m in matches_div if m.matchday == first_md])
+        pagination_nb = len([m for m in matches_div if m.matchday == first_md])
 
     gb.configure_pagination(
         enabled=True,

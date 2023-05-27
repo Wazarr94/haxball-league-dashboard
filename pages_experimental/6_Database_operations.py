@@ -372,19 +372,19 @@ def download_league_data(
         divisions_df.to_pandas().to_excel(writer, sheet_name="Divisions", index=False)
         div_worksheet = writer.sheets["Divisions"]
         div_worksheet.autofit()
-        
+
         teams_df.to_pandas().to_excel(writer, sheet_name="Teams", index=False)
         teams_worksheet = writer.sheets["Teams"]
         teams_worksheet.autofit()
-        
+
         matches_df.to_pandas().to_excel(writer, sheet_name="Matches", index=False)
         matches_worksheet = writer.sheets["Matches"]
         matches_worksheet.autofit()
-        
+
         players_df.to_pandas().to_excel(writer, sheet_name="Players", index=False)
         players_worksheet = writer.sheets["Players"]
         players_worksheet.autofit()
-        
+
     return buffer
 
 
@@ -394,71 +394,82 @@ def download_league_data_system(db: Prisma) -> None:
     matches_list = get_matches(db)
     players_list = get_players(db)
 
-    dnames_df = pl.DataFrame(divisions_list).select("name")
+    if len(divisions_list) == 0:
+        dnames_df = pl.DataFrame({"name": []})
+    else:
+        dnames_df = pl.DataFrame(divisions_list).select("name")
 
-    teams_clean = [
-        {
-            "Division_name": [td.division.name for td in t.divisions],
-            "name": t.name,
-            "initials": t.initials,
-        }
-        for t in teams_list
-    ]
-    teams_df = (
-        pl.DataFrame(teams_clean)
-        .explode("Division_name")
-        .sort(["Division_name", "name"])
-    )
+    if len(teams_list) == 0:
+        teams_df = pl.DataFrame({"name": []})
+    else:
+        teams_clean = [
+            {
+                "Division_name": [td.division.name for td in t.divisions],
+                "name": t.name,
+                "initials": t.initials,
+            }
+            for t in teams_list
+        ]
+        teams_df = (
+            pl.DataFrame(teams_clean)
+            .explode("Division_name")
+            .sort(["Division_name", "name"])
+        )
+    if len(players_list) == 0:
+        players_df = pl.DataFrame({"PLAYER": []})
+    else:
+        players_clean = [
+            {
+                "PLAYER": p.name,
+                "nicks": p.nicks,
+                "active_team": [pt.team.name for pt in p.teams if pt.active],
+                "old_teams": [pt.team.name for pt in p.teams if not pt.active],
+            }
+            for p in players_list
+        ]
+        players_df = (
+            pl.DataFrame(players_clean)
+            .with_columns(
+                [pl.col("nicks").arr.get(i - 1).alias(f"nick{i}") for i in range(1, 7)],
+            )
+            .with_columns(
+                pl.col("active_team").arr.get(0).alias("TEAM"),
+            )
+            .with_columns(
+                [
+                    pl.col("old_teams").arr.get(j - 1).alias(f"old team{j}")
+                    for j in range(1, 3)
+                ],
+            )
+            .select(pl.exclude(["nicks", "active_team", "old_teams"]))
+        )
 
-    players_clean = [
-        {
-            "PLAYER": p.name,
-            "nicks": p.nicks,
-            "active_team": [pt.team.name for pt in p.teams if pt.active],
-            "old_teams": [pt.team.name for pt in p.teams if not pt.active],
-        }
-        for p in players_list
-    ]
-    players_df = (
-        pl.DataFrame(players_clean)
-        .with_columns(
-            [pl.col("nicks").arr.get(i - 1).alias(f"nick{i}") for i in range(1, 7)],
-        )
-        .with_columns(
-            pl.col("active_team").arr.get(0).alias("TEAM"),
-        )
-        .with_columns(
-            [
-                pl.col("old_teams").arr.get(j - 1).alias(f"old team{j}")
-                for j in range(1, 3)
-            ],
-        )
-        .select(pl.exclude(["nicks", "active_team", "old_teams"]))
-    )
-
-    matches_clean = [
-        {
-            "id": m.id,
-            "Matchday": m.matchday,
-            "Date": m.date.date(),
-            "Time": m.date.time(),
-            "Team1_name": re.match(r".* - (.+) vs (.+)", m.title).group(1),
-            "Team2_name": re.match(r".* - (.+) vs (.+)", m.title).group(2),
-            "Division_name": m.LeagueDivision.name,
-            "Period1_id": m.periods[0].id if len(m.periods) > 0 else None,
-            "Period2_id": m.periods[1].id if len(m.periods) > 1 else None,
-            "Period3_id": m.periods[2].id if len(m.periods) > 2 else None,
-            "Score1": get_info_match(m).score[0] if m.periods else None,
-            "Score2": get_info_match(m).score[1] if m.periods else None,
-            "Inverse": not m.detail[0].startsRed if m.detail else None,
-            "Defwin": m.defwin,
-            "Add_red": m.addRed,
-            "Add_blue": m.addBlue,
-            "Replay": m.replayURL,
-        }
-        for m in matches_list
-    ]
-    matches_df = pl.DataFrame(matches_clean)
+    if len(matches_list) == 0:
+        matches_df = pl.DataFrame({"id": []})
+    else:
+        matches_clean = [
+            {
+                "id": m.id,
+                "Matchday": m.matchday,
+                "Date": m.date.date(),
+                "Time": m.date.time(),
+                "Team1_name": re.match(r".* - (.+) vs (.+)", m.title).group(1),
+                "Team2_name": re.match(r".* - (.+) vs (.+)", m.title).group(2),
+                "Division_name": m.LeagueDivision.name,
+                "Period1_id": m.periods[0].id if len(m.periods) > 0 else None,
+                "Period2_id": m.periods[1].id if len(m.periods) > 1 else None,
+                "Period3_id": m.periods[2].id if len(m.periods) > 2 else None,
+                "Score1": get_info_match(m).score[0] if m.periods else None,
+                "Score2": get_info_match(m).score[1] if m.periods else None,
+                "Inverse": not m.detail[0].startsRed if m.detail else None,
+                "Defwin": m.defwin,
+                "Add_red": m.addRed,
+                "Add_blue": m.addBlue,
+                "Replay": m.replayURL,
+            }
+            for m in matches_list
+        ]
+        matches_df = pl.DataFrame(matches_clean)
 
     st.download_button(
         label="Download data as Excel",
