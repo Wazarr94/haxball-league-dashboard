@@ -33,16 +33,22 @@ add_indentation()
 
 
 def get_div_team_select(
-    divisions: list[LeagueDivision],
+    divisions: list[LeagueDivision], teams: list[LeagueTeam]
 ) -> tuple[Optional[LeagueDivision], Optional[str]]:
     col1, col2, col3 = st.columns([3, 2, 9])
     with col1:
-        div_select = st.selectbox("Division", divisions, format_func=lambda d: d.name)
+        div_select = st.selectbox(
+            "Division",
+            [None] + divisions,
+            format_func=lambda d: d.name if d is not None else "All",
+        )
     with col2:
         st.text("")
         st.text("")
         use_team_filter = st.checkbox("Filter team", False)
     with col3:
+        if div_select is None:
+            team_name_options = [t.name for t in teams]
         if use_team_filter:
             team_name_options = [td.team.name for td in div_select.teams]
         else:
@@ -52,7 +58,11 @@ def get_div_team_select(
     return div_select, team_name_select
 
 
-def get_max_matchday_stats(matches: list[LeagueMatch], division: LeagueDivision):
+def get_max_matchday_stats(
+    matches: list[LeagueMatch], division: Optional[LeagueDivision]
+):
+    if division is None:
+        return 1
     matches_div = [m for m in matches if m.leagueDivisionId == division.id]
     md_list = get_unique_order([m.matchday for m in matches_div])
     md_dict = {v: i for i, v in enumerate(md_list)}
@@ -73,6 +83,8 @@ def filter_matches(
     division: LeagueDivision,
     matchdays_select: tuple[str],
 ):
+    if division is None:
+        return matches
     matches_div = [m for m in matches if m.leagueDivisionId == division.id]
     md_list = get_unique_order([m.matchday for m in matches_div])
     md_dict = {v: i for i, v in enumerate(md_list)}
@@ -92,7 +104,7 @@ def get_stats(
     matches: list[LeagueMatch],
     teams: list[LeagueTeam],
     players: list[LeaguePlayer],
-    div_select: LeagueDivision,
+    div_select: Optional[LeagueDivision],
     team_name_select: Optional[str],
 ):
     period_sheets: list[PlayerStatSheet] = []
@@ -104,7 +116,9 @@ def get_stats(
 
     players_stats: list[LeaguePlayer] = []
     for team in teams:
-        if div_select.id in [td.leagueDivisionId for td in team.divisions]:
+        if div_select is None or div_select.id in [
+            td.leagueDivisionId for td in team.divisions
+        ]:
             if team_name_select is None or (
                 team_name_select is not None and team.name == team_name_select
             ):
@@ -361,7 +375,7 @@ def main():
 
     st.write("# S1 preseason statistics")
 
-    div_select, team_name_select = get_div_team_select(divisions_list)
+    div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
 
     if div_select is None:
         matchdays_options_div = [1, 1]
@@ -377,12 +391,9 @@ def main():
         format_func=(lambda v: matchdays_options_div[v]),
     )
 
-    if div_select is None:
-        match_list_filter = []
-    else:
-        match_list_filter = filter_matches(
-            matches_list, team_name_select, div_select, matchdays_select
-        )
+    match_list_filter = filter_matches(
+        matches_list, team_name_select, div_select, matchdays_select
+    )
 
     stats_players = get_stats(
         match_list_filter,
