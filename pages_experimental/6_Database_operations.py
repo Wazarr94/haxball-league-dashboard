@@ -329,9 +329,19 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
         return False
 
     try:
+        create_team_divisions_relationship(db, excel_file)
+    except Exception as e:
+        st.error(f"Error while creating team. Clearing database.\n\n{e}")
+        clear_league_db(db)
+        return False
+
+    try:
         create_players(db, excel_file)
     except Exception as e:
-        st.error(f"Error while creating players. Clearing database.\n\n{e}")
+        st.error(
+            "Error while creating team divisions relationship.",
+            f"Clearing database.\n\n{e}",
+        )
         clear_league_db(db)
         return False
 
