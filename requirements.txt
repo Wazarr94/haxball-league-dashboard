@@ -126,6 +126,9 @@ decorator==5.1.1 ; python_version >= "3.10" and python_version < "4.0" \
 entrypoints==0.4 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:b706eddaa9218a19ebcd67b56818f05bb27589b1ca9e8d797b74affad4ccacd4 \
     --hash=sha256:f174b5ff827504fd3cd97cc3f8649f3693f51538c7e4bdf3ef002c8429d42f9f
+et-xmlfile==1.1.0 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:8eb9e2bc2f8c97e37a2dc85a09ecdcdec9d8a396530a6d5a33b30b9a92da0c5c \
+    --hash=sha256:a2ba85d1d6a74ef63837eed693bcb89c3f752169b0e3e7ae5b16ca5e1b3deada
 extra-streamlit-components==0.1.56 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:a1daed730ae7da50b5daa73095f0509c9be0c286f5902f2987e5b4031904c182 \
     --hash=sha256:d553ce2f7c02bdd57f66c8c7a29eafc0cb75bfd743ab48d615b21acda185534f
@@ -245,6 +248,9 @@ numpy==1.24.3 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:ea8282b9bcfe2b5e7d491d0bf7f3e2da29700cec05b49e64d6246923329f2b02 \
     --hash=sha256:ecde0f8adef7dfdec993fd54b0f78183051b6580f606111a6d789cd14c61ea0c \
     --hash=sha256:f21c442fdd2805e91799fbe044a7b999b8571bb0ab0f7850d0cb9641a687092b
+openpyxl==3.1.2 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:a6f5977418eff3b2d5500d54d9db50c8277a368436f4e4f8ddb1be3422870184 \
+    --hash=sha256:f91456ead12ab3c6c2e9491cf33ba6d08357d802192379bb482f1033ade496f5
 packaging==23.1 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61 \
     --hash=sha256:a392980d2b6cffa644431898be54b0045151319d1e7ec34f0cfed48767dd334f
