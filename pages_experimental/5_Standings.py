@@ -166,6 +166,7 @@ def build_match_db(
             )
         ]
     )
+    standings_df.index = standings_df.index + 1
     return standings_df
 
 
