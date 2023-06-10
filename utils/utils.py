@@ -6,9 +6,9 @@ from statistics import mode
 from typing import Literal, Optional
 
 import streamlit as st
-from prisma.models import LeagueMatch, LeaguePlayer, Period, PlayerStats
+from prisma.models import LeagueMatch, LeaguePlayer, LeagueTeam, Period, PlayerStats
 
-from utils.constants import GAME_TIME, CS_TIME_NECESSARY, DEFWIN_SCORE
+from utils.constants import CS_TIME_NECESSARY, DEFWIN_SCORE, GAME_TIME
 
 
 class GamePosition(IntEnum):
@@ -84,13 +84,16 @@ def is_match_played(match: LeagueMatch):
 class PlayerStatSheet:
     player: Optional[LeaguePlayer]
     player_name: str
-    team: str
-    period_team: int
+    team: LeagueTeam
+    period_nb: int
+    is_red: bool
     stats: PlayerStats
     cs: int
 
 
-def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
+def get_statsheet_list(
+    players: list[LeaguePlayer], match: LeagueMatch
+) -> list[PlayerStatSheet]:
     if len(match.detail) < 2:
         return []
     detail_1, detail_2 = match.detail[0], match.detail[1]
@@ -115,7 +118,13 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                     lp = None
                     lp_name = f"{lp_name} (unknown)"
                 stat_sheet = PlayerStatSheet(
-                    lp, lp_name, team, 1, ps, getCS(ps, period, 1)
+                    player=lp,
+                    player_name=lp_name,
+                    team=team,
+                    period_nb=i + 1,
+                    is_red=True,
+                    stats=ps,
+                    cs=getCS(ps, period, 1),
                 )
                 ps_list.append(stat_sheet)
             elif ps.Player.team == 2:
@@ -134,7 +143,13 @@ def get_statsheet_list(players: list[LeaguePlayer], match: LeagueMatch):
                     lp = None
                     lp_name = f"{lp_name} (unknown)"
                 stat_sheet = PlayerStatSheet(
-                    lp, lp_name, team, 2, ps, getCS(ps, period, 2)
+                    player=lp,
+                    player_name=lp_name,
+                    team=team,
+                    period_nb=i + 1,
+                    is_red=False,
+                    stats=ps,
+                    cs=getCS(ps, period, 1),
                 )
                 ps_list.append(stat_sheet)
     return ps_list
@@ -166,7 +181,7 @@ def sum_sheets(player_sheets: list[PlayerStatSheet]):
         goalsScoredTeam = sum([pss.stats.goalsScoredTeam for pss in group])
         goalsConcededTeam = sum([pss.stats.goalsConcededTeam for pss in group])
         averagePosXList = [
-            pss.stats.averagePosX if pss.period_team == 1 else -pss.stats.averagePosX
+            pss.stats.averagePosX if pss.is_red else -pss.stats.averagePosX
             for pss in group
         ]
         averagePosX = sum(averagePosXList) / len(averagePosXList)
@@ -204,12 +219,13 @@ def sum_sheets(player_sheets: list[PlayerStatSheet]):
             touches=touches,
         )
         final_pss = PlayerStatSheet(
-            group[0].player,
-            group[0].player_name,
-            group[0].team,
-            group[0].period_team,
-            final_ps,
-            cleansheet,
+            player=group[0].player,
+            player_name=group[0].player_name,
+            team=group[0].team,
+            period_nb=0,
+            is_red=group[0].is_red,
+            stats=final_ps,
+            cs=cleansheet,
         )
         final_player_sheets.append(final_pss)
     return final_player_sheets

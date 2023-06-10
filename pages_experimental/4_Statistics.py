@@ -101,20 +101,19 @@ def filter_matches(
 
 
 def get_stats(
-    matches: list[LeagueMatch],
+    matches_filter: list[LeagueMatch],
     teams: list[LeagueTeam],
     players: list[LeaguePlayer],
     div_select: Optional[LeagueDivision],
     team_name_select: Optional[str],
 ):
     period_sheets: list[PlayerStatSheet] = []
-    for m in matches:
+    for m in matches_filter:
         ps_list = get_statsheet_list(players, m)
-        pss_list = [pss for pss in ps_list]
-        period_sheets.extend(pss_list)
+        period_sheets.extend(ps_list)
     player_sheets = sum_sheets(period_sheets)
 
-    players_stats: list[LeaguePlayer] = []
+    players_stats_id: list[LeaguePlayer] = []
     for team in teams:
         if div_select is None or div_select.id in [
             td.leagueDivisionId for td in team.divisions
@@ -122,9 +121,8 @@ def get_stats(
             if team_name_select is None or (
                 team_name_select is not None and team.name == team_name_select
             ):
-                active_players = [p.player for p in team.players if p.active]
-                players_stats.extend(active_players)
-    players_stats_id = [p.id for p in players_stats]
+                active_players_id = [p.player.id for p in team.players if p.active]
+                players_stats_id.extend(active_players_id)
 
     player_sheets_final = [
         ps
@@ -133,6 +131,27 @@ def get_stats(
     ]
 
     return player_sheets_final
+
+
+def show_missing_stats(
+    matches_filter: list[LeagueMatch],
+    players: list[LeaguePlayer],
+):
+    empty_sheets: list[tuple[PlayerStatSheet, LeagueMatch]] = []
+    for m in matches_filter:
+        ps_list = get_statsheet_list(players, m)
+        empty_ps_list = [(ps, m) for ps in ps_list if ps.player is None]
+        empty_sheets.extend(empty_ps_list)
+
+    if len(empty_sheets) == 0:
+        return
+
+    st.write("### [ADMIN] Missing stats")
+    for ps, m in empty_sheets:
+        st.write(
+            f"- **{ps.player_name} [{ps.team.name}]**",
+            f"-- in *{m.title} period {ps.period_nb}*",
+        )
 
 
 def download_stats(df: pd.DataFrame):
@@ -404,6 +423,13 @@ def main():
     )
 
     normalize, filter_players, filter_position = display_options_stats()
+
+    if (
+        "authentication_status" in st.session_state
+        and st.session_state["authentication_status"]
+    ):
+        show_missing_stats(match_list_filter, players_list)
+
     display_stats(stats_players, normalize, filter_players, filter_position)
 
 
