@@ -85,7 +85,6 @@ class PlayerStatSheet:
     player: Optional[LeaguePlayer]
     player_name: str
     team: LeagueTeam
-    period_nb: int
     is_red: bool
     stats: PlayerStats
     cs: int
@@ -121,7 +120,6 @@ def get_statsheet_list(
                     player=lp,
                     player_name=lp_name,
                     team=team,
-                    period_nb=i + 1,
                     is_red=True,
                     stats=ps,
                     cs=getCS(ps, period, 1),
@@ -146,7 +144,6 @@ def get_statsheet_list(
                     player=lp,
                     player_name=lp_name,
                     team=team,
-                    period_nb=i + 1,
                     is_red=False,
                     stats=ps,
                     cs=getCS(ps, period, 1),
@@ -222,7 +219,6 @@ def sum_sheets(player_sheets: list[PlayerStatSheet]):
             player=group[0].player,
             player_name=group[0].player_name,
             team=group[0].team,
-            period_nb=0,
             is_red=group[0].is_red,
             stats=final_ps,
             cs=cleansheet,

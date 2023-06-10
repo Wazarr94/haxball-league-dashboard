@@ -150,7 +150,7 @@ def show_missing_stats(
     for ps, m in empty_sheets:
         st.write(
             f"- **{ps.player_name} [{ps.team.name}]**",
-            f"-- in *{m.title} period {ps.period_nb}*",
+            f"-- in *{m.title}*",
         )
 
 
