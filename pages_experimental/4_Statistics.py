@@ -8,6 +8,7 @@ from prisma import Prisma
 from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
 from st_pages import add_indentation
 
+from utils.constants import GAME_TIME, TEAM_SIZE
 from utils.data import (
     get_divisions,
     get_matches,
@@ -18,15 +19,14 @@ from utils.data import (
 from utils.utils import (
     GamePosition,
     PlayerStatSheet,
-    get_statsheet_list,
-    hide_streamlit_elements,
-    get_unique_order,
-    sum_sheets,
-    is_match_played,
     display_gametime,
     display_pass_success,
+    get_statsheet_list,
+    get_unique_order,
+    hide_streamlit_elements,
+    is_match_played,
+    sum_sheets,
 )
-from utils.constants import GAME_TIME, TEAM_SIZE
 
 hide_streamlit_elements()
 add_indentation()

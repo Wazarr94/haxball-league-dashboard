@@ -3,9 +3,9 @@ from prisma import Prisma
 from prisma.models import LeagueDivision, LeaguePlayer, LeagueTeam
 from st_pages import add_indentation
 
+from utils.constants import LEAGUE_TEAM_SIZE_MAX
 from utils.data import get_divisions, get_teams, init_connection
 from utils.utils import hide_streamlit_elements
-from utils.constants import LEAGUE_TEAM_SIZE_MAX
 
 hide_streamlit_elements()
 add_indentation()

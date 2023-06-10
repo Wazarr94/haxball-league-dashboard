@@ -12,7 +12,7 @@ from utils.data import (
     get_matches,
     init_connection,
 )
-from utils.utils import hide_streamlit_elements, get_info_match, get_unique_order
+from utils.utils import get_info_match, get_unique_order, hide_streamlit_elements
 
 hide_streamlit_elements()
 add_indentation()
