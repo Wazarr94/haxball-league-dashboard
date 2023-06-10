@@ -9,6 +9,7 @@ from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from st_pages import add_indentation
 
+from utils.constants import LEAGUE_TITLE
 from utils.data import get_divisions, get_matches, init_connection
 from utils.utils import get_info_match, get_unique_order, hide_streamlit_elements
 
@@ -153,7 +154,7 @@ def main():
     matches_list = get_matches(db)
     divisions_list = get_divisions(db)
 
-    st.write("# S1 preseason matches")
+    st.write(f"# {LEAGUE_TITLE} matches")
 
     div, team_select, use_team_filter = get_div_team_select(divisions_list)
     matchday_select = get_md_select(div, matches_list)

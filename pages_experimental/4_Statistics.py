@@ -8,7 +8,7 @@ from prisma import Prisma
 from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
 from st_pages import add_indentation
 
-from utils.constants import GAME_TIME, TEAM_SIZE
+from utils.constants import GAME_TIME, LEAGUE_TITLE, TEAM_SIZE
 from utils.data import (
     get_divisions,
     get_matches,
@@ -392,7 +392,7 @@ def main():
         for div in divisions_list
     }
 
-    st.write("# S1 preseason statistics")
+    st.write(f"# {LEAGUE_TITLE} statistics")
 
     div_select, team_name_select = get_div_team_select(divisions_list, teams_list)
 

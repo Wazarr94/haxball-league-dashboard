@@ -3,7 +3,7 @@ from prisma import Prisma
 from prisma.models import LeagueDivision, LeaguePlayer, LeagueTeam
 from st_pages import add_indentation
 
-from utils.constants import LEAGUE_TEAM_SIZE_MAX
+from utils.constants import LEAGUE_TEAM_SIZE_MAX, LEAGUE_TITLE
 from utils.data import get_divisions, get_teams, init_connection
 from utils.utils import hide_streamlit_elements
 
@@ -114,7 +114,7 @@ def main():
     teams_list = get_teams(db)
     divisions_list = get_divisions(db)
 
-    st.write("# S1 preseason teams")
+    st.write(f"# {LEAGUE_TITLE} teams")
 
     team, div = select_team_div(teams_list, divisions_list)
     if team is None:
