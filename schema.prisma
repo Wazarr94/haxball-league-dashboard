@@ -1,18 +1,13 @@
-generator client {
-  provider  = "prisma-client-py"
-  interface = "sync"
-  output    = "./generated/prisma-client-py/"
-}
-
 datasource db {
   provider = "postgresql"
   url      = ""
 }
 
 generator client {
-  provider  = "prisma-client-py"
-  interface = "sync"
-  output    = "./generated/prisma"
+  provider             = "prisma-client-py"
+  interface            = "sync"
+  recursive_type_depth = 5
+  output               = "./generated/prisma/"
 }
 
 model Period {
@@ -87,11 +82,19 @@ model PlayerStats {
   gamePosition      Int
 }
 
+model LeagueSeason {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique
+  LeagueDivision LeagueDivision[]
+}
+
 model LeagueDivision {
-  id      Int                   @id @default(autoincrement())
-  name    String                @unique
-  matches LeagueMatch[]
-  teams   LeagueTeamDivisions[]
+  id             Int                   @id @default(autoincrement())
+  leagueSeasonId Int
+  name           String
+  matches        LeagueMatch[]
+  teams          LeagueTeamDivisions[]
+  leagueSeason   LeagueSeason          @relation(fields: [leagueSeasonId], references: [id], onDelete: Cascade)
 }
 
 model LeagueTeam {
