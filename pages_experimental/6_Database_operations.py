@@ -7,13 +7,13 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import streamlit as st
-from prisma import Prisma
-from prisma.types import (
+from st_pages import add_indentation
+
+from generated.prisma import Prisma
+from generated.prisma.types import (
     LeagueMatchCreateWithoutRelationsInput,
     LeagueMatchDetailCreateWithoutRelationsInput,
 )
-from st_pages import add_indentation
-
 from utils.data import (
     get_divisions,
     get_matches,

@@ -1,14 +1,14 @@
 from typing import Optional
 
 import streamlit as st
-from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
-from prisma.types import (
+from st_pages import add_indentation
+
+from generated.prisma import Prisma
+from generated.prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
+from generated.prisma.types import (
     LeagueMatchDetailCreateWithoutRelationsInput,
     PeriodWhereUniqueInput,
 )
-from st_pages import add_indentation
-
 from utils.data import (
     get_divisions,
     get_matches,

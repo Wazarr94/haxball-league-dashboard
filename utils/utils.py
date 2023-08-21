@@ -6,8 +6,14 @@ from statistics import mode
 from typing import Literal, Optional
 
 import streamlit as st
-from prisma.models import LeagueMatch, LeaguePlayer, LeagueTeam, Period, PlayerStats
 
+from generated.prisma.models import (
+    LeagueMatch,
+    LeaguePlayer,
+    LeagueTeam,
+    Period,
+    PlayerStats,
+)
 from utils.constants import CS_TIME_NECESSARY, DEFWIN_SCORE, GAME_TIME
 
 

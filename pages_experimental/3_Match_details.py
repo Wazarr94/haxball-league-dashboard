@@ -2,10 +2,15 @@ import copy
 from typing import Optional
 
 import streamlit as st
-from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
 from st_pages import add_indentation
 
+from generated.prisma import Prisma
+from generated.prisma.models import (
+    LeagueDivision,
+    LeagueMatch,
+    LeaguePlayer,
+    LeagueTeam,
+)
 from utils.data import (
     get_divisions,
     get_matches,

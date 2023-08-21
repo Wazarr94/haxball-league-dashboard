@@ -4,10 +4,15 @@ from typing import Optional
 import pandas as pd
 import polars as pl
 import streamlit as st
-from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
 from st_pages import add_indentation
 
+from generated.prisma import Prisma
+from generated.prisma.models import (
+    LeagueDivision,
+    LeagueMatch,
+    LeaguePlayer,
+    LeagueTeam,
+)
 from utils.constants import GAME_TIME, LEAGUE_TITLE, TEAM_SIZE
 from utils.data import (
     get_divisions,

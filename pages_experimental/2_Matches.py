@@ -3,12 +3,12 @@ from typing import Optional
 
 import pandas as pd
 import streamlit as st
-from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from st_pages import add_indentation
 
+from generated.prisma import Prisma
+from generated.prisma.models import LeagueDivision, LeagueMatch
 from utils.constants import LEAGUE_TITLE
 from utils.data import get_divisions, get_matches, init_connection
 from utils.utils import get_info_match, get_unique_order, hide_streamlit_elements

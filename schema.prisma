@@ -1,11 +1,12 @@
-generator client {
-  provider  = "prisma-client-py"
-  interface = "sync"
-}
-
 datasource db {
   provider = "postgresql"
   url      = ""
+}
+
+generator client {
+  provider  = "prisma-client-py"
+  interface = "sync"
+  output    = "./generated/prisma"
 }
 
 model Period {
