@@ -406,7 +406,6 @@ def download_league_data_system(db: Prisma) -> None:
 
     if len(divisions_list) == 0:
         dnames_df = pl.DataFrame({"name": []})
-        st.write(dnames_df)
     else:
         div_clean = [{"name": d.name} for d in divisions_list]
         dnames_df = pl.DataFrame(div_clean)
