@@ -306,11 +306,17 @@ def clear_league_db(db: Prisma) -> None:
     db.leaguematchdetail.delete_many(where={})
 
 
-def clear_league_db_system(db: Prisma) -> None:
-    button = st.button("Clear league database")
-    if button:
+def confirm_clear_league_db(db: Prisma) -> None:
+    col1, col2 = st.columns([2, 1])
+    col1.warning("Are you sure you want to clear the league database?")
+    btn = col2.button("Confirm")
+    if btn:
         clear_league_db(db)
         st.success("League database cleared")
+
+
+def clear_league_db_system(db: Prisma) -> None:
+    st.button("Clear league database", on_click=confirm_clear_league_db, args=(db,))
 
 
 def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
@@ -488,21 +494,6 @@ def download_league_data_system(db: Prisma) -> None:
     return
 
 
-def clear_games_db(db: Prisma) -> None:
-    db.goaldetail.delete_many(where={})
-    db.goal.delete_many(where={})
-    db.period.delete_many(where={})
-    db.playerstats.delete_many(where={})
-    db.player.delete_many(where={})
-
-
-def clear_games_db_system(db: Prisma) -> None:
-    button = st.button("Clear games database")
-    if button:
-        clear_games_db(db)
-        st.success("Game database cleared")
-
-
 def main() -> None:
     if "db" not in st.session_state:
         db = init_connection()
@@ -525,16 +516,13 @@ def main() -> None:
 
     st.write("## Database management")
 
-    st.write("### Games database")
-
-    clear_games_db_system(db)
-
     st.write("### League database")
 
     clear_league_db_system(db)
 
     excel_file = st.file_uploader("Upload excel file", type=["xlsx"])
-    if excel_file:
+    btn_update = st.button("Update database", disabled=(not excel_file))
+    if btn_update:
         success = treat_excel_file(db, excel_file)
         if success:
             st.success("File processed")
