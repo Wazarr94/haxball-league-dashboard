@@ -10,6 +10,7 @@ import streamlit as st
 from st_pages import add_indentation
 
 from generated.prisma import Prisma
+from generated.prisma.models import LeagueSeason
 from generated.prisma.types import (
     LeagueMatchCreateWithoutRelationsInput,
     LeagueMatchDetailCreateWithoutRelationsInput,
@@ -50,7 +51,15 @@ def get_title(match: pd.DataFrame):
     return title
 
 
-def create_divisions(db: Prisma, excel: UploadedFile) -> int:
+def create_season(db: Prisma, excel: UploadedFile) -> LeagueSeason:
+    season_df = pd.read_excel(excel, "Season", dtype={"name": str})
+
+    season = db.leagueseason.create(data={"name": season_df["name"][0]})
+
+    return season
+
+
+def create_divisions(db: Prisma, excel: UploadedFile, season: LeagueSeason) -> int:
     divisions_df = pd.read_excel(
         excel,
         "Divisions",
@@ -58,7 +67,9 @@ def create_divisions(db: Prisma, excel: UploadedFile) -> int:
     )
 
     divisions = db.leaguedivision.create_many(
-        data=[{"name": name} for name in divisions_df["name"]]
+        data=[
+            {"name": name, "leagueSeasonId": season.id} for name in divisions_df["name"]
+        ]
     )
 
     return divisions
@@ -124,8 +135,8 @@ def create_team_divisions_relationship(db: Prisma, excel: UploadedFile) -> int:
 
 def create_players(db: Prisma, excel: UploadedFile) -> int:
     players_df = pd.read_excel(
-        excel, "Players", na_values="---", dtype=object
-    ).set_index("PLAYER")
+        excel, "Players", na_values="---", dtype=object, skiprows=1
+    ).set_index("Player")
 
     players_nicks_records = players_df.loc[
         :, players_df.columns.str.startswith("nick")
@@ -143,7 +154,9 @@ def create_players(db: Prisma, excel: UploadedFile) -> int:
 
 
 def create_team_players_relationship(db: Prisma, excel: UploadedFile) -> int:
-    players_df = pd.read_excel(excel, "Players", na_values="---")
+    players_df = pd.read_excel(
+        excel, "Players", na_values="---", dtype=object, skiprows=1
+    )
 
     players_class = db.leagueplayer.find_many()
     players_dict = (
@@ -153,7 +166,7 @@ def create_team_players_relationship(db: Prisma, excel: UploadedFile) -> int:
         .to_dict("dict")["id"]
     )
 
-    players_df["player_id"] = players_df["PLAYER"].apply(
+    players_df["player_id"] = players_df["Player"].apply(
         lambda x: players_dict[str(x)] if str(x) in players_dict.keys() else -1
     )
 
@@ -167,7 +180,7 @@ def create_team_players_relationship(db: Prisma, excel: UploadedFile) -> int:
         .to_dict("dict")["id"]
     )
 
-    players_teams_df = players_df["TEAM"].apply(
+    players_teams_df = players_df["Team"].apply(
         lambda x: teams_dict[x] if x in teams_dict.keys() else -1
     )
 
@@ -202,6 +215,12 @@ def create_matches(db: Prisma, excel: UploadedFile) -> int:
         dtype={"Division_name": str, "Matchday": str},
     )
 
+    matches_df = (
+        pl.DataFrame(matches_df)
+        .filter((pl.col("Team1_name") != "-") & (pl.col("Team2_name") != "-"))
+        .to_pandas()
+    )
+
     matches_df["Title"] = matches_df.apply(get_title, axis=1)
     matches_df["Defwin"] = matches_df["Defwin"].fillna(0)
     matches_df["Add_red"] = matches_df["Add_red"].fillna(0)
@@ -209,10 +228,8 @@ def create_matches(db: Prisma, excel: UploadedFile) -> int:
     matches_df["Replay"] = matches_df["Replay"].fillna("")
 
     divisions_class = db.leaguedivision.find_many()
-    divisions_df = (
-        pd.DataFrame([dict(s) for s in divisions_class])
-        .iloc[:, :2]
-        .rename(columns={"id": "Division_id", "name": "Division_name"})
+    divisions_df = pd.DataFrame([dict(s) for s in divisions_class]).rename(
+        columns={"id": "Division_id", "name": "Division_name"}
     )
 
     matches_dict_records = matches_df.merge(
@@ -225,7 +242,10 @@ def create_matches(db: Prisma, excel: UploadedFile) -> int:
             "leagueDivisionId": int(x["Division_id"]),
             "matchday": x["Matchday"],
             "gameNumber": x["Game_number"],
-            "date": datetime.combine(x["Date"], x["Time"]),
+            "date": datetime.combine(
+                x["Date"],
+                datetime.strptime(x["Time"], "%I:%M:%S %p").time(),
+            ),
             "title": x["Title"],
             "defwin": x["Defwin"],
             "addRed": x["Add_red"],
@@ -244,6 +264,12 @@ def create_matches_details(db: Prisma, excel: UploadedFile) -> int:
         excel,
         "Matches",
         dtype={"Division_name": str, "Matchday": str},
+    )
+
+    matches_df = (
+        pl.DataFrame(matches_df)
+        .filter((pl.col("Team1_name") != "-") & (pl.col("Team2_name") != "-"))
+        .to_pandas()
     )
 
     matches_df["Title"] = matches_df.apply(get_title, axis=1)
@@ -304,6 +330,7 @@ def clear_league_db(db: Prisma) -> None:
     db.leaguedivision.delete_many(where={})
     db.leaguematch.delete_many(where={})
     db.leaguematchdetail.delete_many(where={})
+    db.leagueseason.delete_many(where={})
 
 
 def confirm_clear_league_db(db: Prisma) -> None:
@@ -321,7 +348,14 @@ def clear_league_db_system(db: Prisma) -> None:
 
 def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
     try:
-        create_divisions(db, excel_file)
+        season = create_season(db, excel_file)
+    except Exception as e:
+        st.error(f"Error while creating season. Clearing database.\n\n{e}")
+        clear_league_db(db)
+        return False
+
+    try:
+        create_divisions(db, excel_file, season)
     except Exception as e:
         st.error(f"Error while creating divisions. Clearing database.\n\n{e}")
         clear_league_db(db)
@@ -337,7 +371,10 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
     try:
         create_team_divisions_relationship(db, excel_file)
     except Exception as e:
-        st.error(f"Error while creating team. Clearing database.\n\n{e}")
+        st.error(
+            "Error while creating team divisions relationship. "
+            + f"Clearing database.\n\n{e}"
+        )
         clear_league_db(db)
         return False
 
@@ -345,8 +382,7 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
         create_players(db, excel_file)
     except Exception as e:
         st.error(
-            "Error while creating team divisions relationship.",
-            f"Clearing database.\n\n{e}",
+            "Error while creating players. " + f"Clearing database.\n\n{e}",
         )
         clear_league_db(db)
         return False
@@ -429,11 +465,11 @@ def download_league_data_system(db: Prisma) -> None:
         ]
         teams_df = pl.DataFrame(teams_clean).explode("Division_name")
     if len(players_list) == 0:
-        players_df = pl.DataFrame({"PLAYER": []})
+        players_df = pl.DataFrame({"Player": []})
     else:
         players_clean = [
             {
-                "PLAYER": p.name,
+                "Player": p.name,
                 "nicks": p.nicks,
                 "active_team": [pt.team.name for pt in p.teams if pt.active],
                 "old_teams": [pt.team.name for pt in p.teams if not pt.active],
