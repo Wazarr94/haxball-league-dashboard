@@ -408,8 +408,9 @@ def main():
     matchdays_values = range(len(matchdays_options_div))
     matchday_max = get_max_matchday_stats(matches_list, div_select)
     if len(matchdays_options_div) == 0:
-        matchdays_values = [0]
-        matchday_max = 0
+        matchdays_options_div = [1, 1]
+        matchdays_values = [0, 1]
+        matchday_max = 1
 
     matchdays_select = st.select_slider(
         "Matchdays",
