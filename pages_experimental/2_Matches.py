@@ -52,6 +52,8 @@ def get_md_select(
             matches_div = [m for m in matches if m.leagueDivisionId == div.id]
             md_list = get_unique_order([m.matchday for m in matches_div])
             matchdays_options_div = {v: i for i, v in enumerate(md_list)}
+            if len(matchdays_options_div) == 0:
+                matchdays_options_div = [1, 1]
 
         matchday_select = col2.select_slider(
             "Matchday",

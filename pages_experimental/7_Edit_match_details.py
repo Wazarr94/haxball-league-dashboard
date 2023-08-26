@@ -53,6 +53,9 @@ def select_match(
         matchdays_options_div = [1, 1]
     else:
         matchdays_options_div = matchday_options[div_select.id]
+        if len(matchdays_options_div) == 0:
+            matchdays_options_div = [1, 1]
+
     matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
 
     match_list_filter: list[LeagueMatch] = []
