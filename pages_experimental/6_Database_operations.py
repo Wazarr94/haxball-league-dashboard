@@ -1,4 +1,5 @@
 import io
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -36,6 +37,45 @@ class UploadedFile:
     size: int
 
 
+@dataclass
+class Input:
+    excel: UploadedFile | None
+    spreadsheet_url: str | None
+
+    def get_url_final(self) -> str | None:
+        if self.spreadsheet_url is None:
+            return None
+        spreadsheet_id = self.spreadsheet_url.split("/")[5]
+        return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv"
+
+    def get_dataframe_excel(self, sheet_name: str, **kwargs) -> pd.DataFrame | None:
+        if self.excel is None:
+            return None
+
+        return pd.read_excel(self.excel, sheet_name=sheet_name, **kwargs)
+
+    def get_dataframe_spreadsheet(
+        self, sheet_name: str, **kwargs
+    ) -> pd.DataFrame | None:
+        if self.spreadsheet_url is None:
+            return None
+
+        url_input = self.get_url_final()
+        url = f"{url_input}&sheet={sheet_name}"
+        return pd.read_csv(url, **kwargs)
+
+    def get_dataframe(self, sheet_name: str, **kwargs) -> pd.DataFrame:
+        if self.excel is not None:
+            df = self.get_dataframe_excel(sheet_name, **kwargs)
+        elif self.spreadsheet_url is not None:
+            df = self.get_dataframe_spreadsheet(sheet_name, **kwargs)
+        else:
+            raise ValueError("No input provided")
+
+        assert df is not None
+        return df
+
+
 def get_title(match: pd.DataFrame):
     md: str = match["Matchday"]
     game_nb = match["Game_number"]
@@ -51,20 +91,16 @@ def get_title(match: pd.DataFrame):
     return title
 
 
-def create_season(db: Prisma, excel: UploadedFile) -> LeagueSeason:
-    season_df = pd.read_excel(excel, "Season", dtype={"name": str})
+def create_season(db: Prisma, input_league: Input) -> LeagueSeason:
+    season_df = input_league.get_dataframe("Season", dtype={"name": str})
 
     season = db.leagueseason.create(data={"name": season_df["name"][0]})
 
     return season
 
 
-def create_divisions(db: Prisma, excel: UploadedFile, season: LeagueSeason) -> int:
-    divisions_df = pd.read_excel(
-        excel,
-        "Divisions",
-        dtype={"name": str},
-    )
+def create_divisions(db: Prisma, input_league: Input, season: LeagueSeason) -> int:
+    divisions_df = input_league.get_dataframe("Divisions", dtype={"name": str})
 
     divisions = db.leaguedivision.create_many(
         data=[
@@ -75,12 +111,8 @@ def create_divisions(db: Prisma, excel: UploadedFile, season: LeagueSeason) -> i
     return divisions
 
 
-def create_teams(db: Prisma, excel: UploadedFile) -> int:
-    teams_df = pd.read_excel(
-        excel,
-        "Teams",
-        dtype={"Division_name": str},
-    )
+def create_teams(db: Prisma, input_league: Input) -> int:
+    teams_df = input_league.get_dataframe("Teams", dtype={"Division_name": str})
 
     teams_df = teams_df.drop(columns=["Division_name"])
     teams = db.leagueteam.create_many(data=teams_df.to_dict("records"))
@@ -88,12 +120,8 @@ def create_teams(db: Prisma, excel: UploadedFile) -> int:
     return teams
 
 
-def create_team_divisions_relationship(db: Prisma, excel: UploadedFile) -> int:
-    teams_df = pd.read_excel(
-        excel,
-        "Teams",
-        dtype={"Division_name": str},
-    )
+def create_team_divisions_relationship(db: Prisma, input_league: Input) -> int:
+    teams_df = input_league.get_dataframe("Teams", dtype={"Division_name": str})
 
     teams_class = db.leagueteam.find_many()
     teams_dict = (
@@ -133,9 +161,9 @@ def create_team_divisions_relationship(db: Prisma, excel: UploadedFile) -> int:
     return team_divisions
 
 
-def create_players(db: Prisma, excel: UploadedFile) -> int:
-    players_df = pd.read_excel(
-        excel, "Players", na_values="---", dtype=object, skiprows=1
+def create_players(db: Prisma, input_league: Input) -> int:
+    players_df = input_league.get_dataframe(
+        "Players", na_values=["---", "", np.nan], dtype=object, skiprows=1
     ).set_index("Player")
 
     players_nicks_records = players_df.loc[
@@ -153,10 +181,12 @@ def create_players(db: Prisma, excel: UploadedFile) -> int:
     return players
 
 
-def create_team_players_relationship(db: Prisma, excel: UploadedFile) -> int:
-    players_df = pd.read_excel(
-        excel, "Players", na_values="---", dtype=object, skiprows=1
-    )
+def create_team_players_relationship(db: Prisma, input_league: Input) -> int:
+    players_df = input_league.get_dataframe(
+        "Players", na_values=["---", "", np.nan], dtype=object, skiprows=1
+    ).set_index("Player")
+
+    st.write(players_df)
 
     players_class = db.leagueplayer.find_many()
     players_dict = (
@@ -208,11 +238,9 @@ def create_team_players_relationship(db: Prisma, excel: UploadedFile) -> int:
     return active_players + inactive_players
 
 
-def create_matches(db: Prisma, excel: UploadedFile) -> int:
-    matches_df = pd.read_excel(
-        excel,
-        "Matches",
-        dtype={"Division_name": str, "Matchday": str},
+def create_matches(db: Prisma, input_league: Input) -> int:
+    matches_df = input_league.get_dataframe(
+        "Matches", dtype={"Division_name": str, "Matchday": str}
     )
 
     matches_df = (
@@ -259,11 +287,9 @@ def create_matches(db: Prisma, excel: UploadedFile) -> int:
     return matches
 
 
-def create_matches_details(db: Prisma, excel: UploadedFile) -> int:
-    matches_df = pd.read_excel(
-        excel,
-        "Matches",
-        dtype={"Division_name": str, "Matchday": str},
+def create_matches_details(db: Prisma, input_league: Input) -> int:
+    matches_df = input_league.get_dataframe(
+        "Matches", dtype={"Division_name": str, "Matchday": str}
     )
 
     matches_df = (
@@ -346,30 +372,30 @@ def clear_league_db_system(db: Prisma) -> None:
     st.button("Clear league database", on_click=confirm_clear_league_db, args=(db,))
 
 
-def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
+def treat_input(db: Prisma, input_league: Input) -> bool:
     try:
-        season = create_season(db, excel_file)
+        season = create_season(db, input_league)
     except Exception as e:
         st.error(f"Error while creating season. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
     try:
-        create_divisions(db, excel_file, season)
+        create_divisions(db, input_league, season)
     except Exception as e:
         st.error(f"Error while creating divisions. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
     try:
-        create_teams(db, excel_file)
+        create_teams(db, input_league)
     except Exception as e:
         st.error(f"Error while creating teams. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
     try:
-        create_team_divisions_relationship(db, excel_file)
+        create_team_divisions_relationship(db, input_league)
     except Exception as e:
         st.error(
             "Error while creating team divisions relationship. "
@@ -379,7 +405,7 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
         return False
 
     try:
-        create_players(db, excel_file)
+        create_players(db, input_league)
     except Exception as e:
         st.error(
             "Error while creating players. " + f"Clearing database.\n\n{e}",
@@ -388,7 +414,7 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
         return False
 
     try:
-        create_team_players_relationship(db, excel_file)
+        create_team_players_relationship(db, input_league)
     except Exception as e:
         st.error(
             f"Error while creating team players relationship. Clearing database.\n\n{e}"
@@ -397,14 +423,14 @@ def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
         return False
 
     try:
-        create_matches(db, excel_file)
+        create_matches(db, input_league)
     except Exception as e:
         st.error(f"Error while creating matches. Clearing database.\n\n{e}")
         clear_league_db(db)
         return False
 
     try:
-        create_matches_details(db, excel_file)
+        create_matches_details(db, input_league)
     except Exception as e:
         st.error(f"Error while creating match details. Clearing database.\n\n{e}")
         clear_league_db(db)
@@ -418,7 +444,7 @@ def download_league_data(
     teams_df: pl.DataFrame,
     matches_df: pl.DataFrame,
     players_df: pl.DataFrame,
-) -> None:
+) -> io.BytesIO:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
         divisions_df.to_pandas().to_excel(writer, sheet_name="Divisions", index=False)
@@ -482,7 +508,7 @@ def download_league_data_system(db: Prisma) -> None:
                 [pl.col("nicks").arr.get(i - 1).alias(f"nick{i}") for i in range(1, 7)],
             )
             .with_columns(
-                pl.col("active_team").arr.get(0).alias("TEAM"),
+                pl.col("active_team").arr.get(0).alias("Team"),
             )
             .with_columns(
                 [
@@ -520,12 +546,15 @@ def download_league_data_system(db: Prisma) -> None:
         ]
         matches_df = pl.DataFrame(matches_clean)
 
-    st.download_button(
+    col1, col2 = st.columns([1, 2])
+    col1.download_button(
         label="Download data as Excel",
         data=download_league_data(dnames_df, teams_df, matches_df, players_df),
         file_name="FUTLIFE_league.xlsx",
         mime="application/vnd.ms-excel",
+        disabled=True,
     )
+    col2.warning("Download is temporarily broken")
 
     return
 
@@ -556,10 +585,31 @@ def main() -> None:
 
     clear_league_db_system(db)
 
-    excel_file = st.file_uploader("Upload excel file", type=["xlsx"])
-    btn_update = st.button("Update database", disabled=(not excel_file))
+    col, _ = st.columns([1, 2])
+    select_method = col.selectbox(
+        "Select input method",
+        ["Google Spreadsheet", "Excel file"],
+    )
+    if select_method == "Google Spreadsheet":
+        url_input = st.text_input(
+            "Enter spreadsheet URL",
+            value=os.environ["SPREADSHEET_URL"],
+        )
+        input_league = Input(excel=None, spreadsheet_url=url_input)
+    else:
+        excel_file = st.file_uploader("Upload excel file", type=["xlsx"])
+        input_league = Input(excel=excel_file, spreadsheet_url=None)
+
+    disabled = (input_league.excel is None and select_method == "Excel file") or (
+        (input_league.spreadsheet_url == "" or input_league.spreadsheet_url is None)
+        and select_method == "Google Spreadsheet"
+    )
+    btn_update = st.button(
+        "Update database",
+        disabled=disabled,
+    )
     if btn_update:
-        success = treat_excel_file(db, excel_file)
+        success = treat_input(db, input_league)
         if success:
             st.success("File processed")
 
