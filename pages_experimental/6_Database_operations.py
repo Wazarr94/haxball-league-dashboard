@@ -219,11 +219,49 @@ def create_matches(db: Prisma, matches_df: pl.DataFrame) -> int:
             addRed=pl.col("Add_red"),
             addBlue=pl.col("Add_blue"),
             replayURL=pl.col("Replay"),
+            periods=pl.concat_list([pl.col("^Period.*$")]),
         )
         .to_dicts()
     )
 
+    data_update_matches = [
+        (
+            {"id": match.get("id")},
+            {
+                "periods": {
+                    "set": [
+                        {"id": period}
+                        for period in match.get("periods", [])
+                        if period is not None
+                    ]
+                }
+            },
+        )
+        for match in data_matches
+    ]
+    # remove entries from the list with no periods
+    data_update_matches = [
+        data_match
+        for data_match in data_update_matches
+        if data_match[1]["periods"]["set"]
+    ]
+
+    for data_match in data_matches:
+        data_match.pop("periods")
+
     matches = db.leaguematch.create_many(data=data_matches)  # type: ignore
+
+    periods_db = db.period.find_many()
+    all_periods_id = [p.id for p in periods_db]
+
+    for data_match in data_update_matches:
+        if data_match[1]["periods"]["set"]:
+            for period in data_match[1]["periods"]["set"]:
+                if period["id"] not in all_periods_id:
+                    raise ValueError(f"Period {period} does not exist in database.")
+
+        db.leaguematch.update(where=data_match[0], data=data_match[1])  # type: ignore
+
     return matches
 
 
@@ -287,6 +325,8 @@ def clear_league_db(db: Prisma) -> None:
     db.leaguematch.delete_many(where={})
     db.leaguematchdetail.delete_many(where={})
     db.leagueseason.delete_many(where={})
+
+    st.cache_resource.clear()
 
 
 def confirm_clear_league_db(db: Prisma) -> None:
@@ -486,6 +526,7 @@ def treat_input(db: Prisma, input_league: Input) -> bool:
             clear_league_db(db)
             return False
 
+    st.cache_resource.clear()
     return True
 
 
@@ -640,9 +681,9 @@ def main() -> None:
     col, _ = st.columns([1, 2])
     select_method = col.selectbox(
         "Select input method",
-        ["Google Spreadsheet", "Excel file"],
+        ["Google Sheets", "Excel file"],
     )
-    if select_method == "Google Spreadsheet":
+    if select_method == "Google Sheets":
         url_input = st.text_input(
             "Enter spreadsheet URL",
             value=os.environ["SPREADSHEET_URL"],
@@ -654,7 +695,7 @@ def main() -> None:
 
     disabled = (input_league.excel is None and select_method == "Excel file") or (
         (input_league.spreadsheet_url == "" or input_league.spreadsheet_url is None)
-        and select_method == "Google Spreadsheet"
+        and select_method == "Google Sheets"
     )
     btn_update = st.button(
         "Update database",
