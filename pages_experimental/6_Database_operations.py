@@ -1,20 +1,17 @@
 import io
+import os
 import re
+import traceback
 from dataclasses import dataclass
-from datetime import datetime
 
-import numpy as np
 import pandas as pd
 import polars as pl
 import streamlit as st
 from st_pages import add_indentation
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from generated.prisma import Prisma
 from generated.prisma.models import LeagueSeason
-from generated.prisma.types import (
-    LeagueMatchCreateWithoutRelationsInput,
-    LeagueMatchDetailCreateWithoutRelationsInput,
-)
 from utils.data import (
     get_divisions,
     get_matches,
@@ -29,18 +26,52 @@ add_indentation()
 
 
 @dataclass
-class UploadedFile:
-    id: int
-    name: str
-    type: str
-    size: int
+class Input:
+    excel: UploadedFile | None
+    spreadsheet_url: str | None
+
+    def get_url_final(self) -> str | None:
+        if self.spreadsheet_url is None:
+            return None
+
+        spreadsheet_id = self.spreadsheet_url.split("/")[5]
+        return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export"
+
+    def get_dataframe_excel(self, sheet_name: str, **kwargs) -> pl.DataFrame | None:
+        if self.excel is None:
+            return None
+        df_pd = pd.read_excel(self.excel, sheet_name=sheet_name, **kwargs)
+        return pl.DataFrame(df_pd)
+
+    def get_dataframe_spreadsheet(
+        self, sheet_name: str, **kwargs
+    ) -> pl.DataFrame | None:
+        if self.spreadsheet_url is None:
+            return None
+
+        url_input = self.get_url_final()
+        assert url_input is not None
+        df_pd = pd.read_excel(url_input, sheet_name=sheet_name, **kwargs)
+        return pl.DataFrame(df_pd)
+
+    def get_dataframe(self, sheet_name: str, **kwargs) -> pl.DataFrame:
+        if self.excel is not None:
+            df = self.get_dataframe_excel(sheet_name, **kwargs)
+        elif self.spreadsheet_url is not None:
+            df = self.get_dataframe_spreadsheet(sheet_name, **kwargs)
+        else:
+            raise ValueError("No input provided")
+
+        assert df is not None
+        return df
 
 
-def get_title(match: pd.DataFrame):
-    md: str = match["Matchday"]
-    game_nb = match["Game_number"]
-    t1 = match["Team1_name"]
-    t2 = match["Team2_name"]
+def get_title(match: pl.DataFrame) -> str:
+    # id = match[0]
+    md = match[1]
+    game_nb = match[2]
+    t1 = match[3]
+    t2 = match[4]
     if md.isdigit():
         title = f"MD {md} - {t1} vs {t2}"
     else:
@@ -51,274 +82,199 @@ def get_title(match: pd.DataFrame):
     return title
 
 
-def create_season(db: Prisma, excel: UploadedFile) -> LeagueSeason:
-    season_df = pd.read_excel(excel, "Season", dtype={"name": str})
-
-    season = db.leagueseason.create(data={"name": season_df["name"][0]})
+def create_season(db: Prisma, season_df: pl.DataFrame) -> LeagueSeason:
+    name_season = season_df.get_column("name").item()
+    season = db.leagueseason.create(data={"name": name_season})
 
     return season
 
 
-def create_divisions(db: Prisma, excel: UploadedFile, season: LeagueSeason) -> int:
-    divisions_df = pd.read_excel(
-        excel,
-        "Divisions",
-        dtype={"name": str},
-    )
+def create_divisions(
+    db: Prisma, divisions_df: pl.DataFrame, season: LeagueSeason
+) -> int:
+    data_divisions = divisions_df.select(
+        "name", leagueSeasonId=pl.lit(season.id)
+    ).to_dicts()
 
-    divisions = db.leaguedivision.create_many(
-        data=[
-            {"name": name, "leagueSeasonId": season.id} for name in divisions_df["name"]
-        ]
-    )
+    divisions = db.leaguedivision.create_many(data=data_divisions)  # type: ignore
 
     return divisions
 
 
-def create_teams(db: Prisma, excel: UploadedFile) -> int:
-    teams_df = pd.read_excel(
-        excel,
-        "Teams",
-        dtype={"Division_name": str},
-    )
-
-    teams_df = teams_df.drop(columns=["Division_name"])
-    teams = db.leagueteam.create_many(data=teams_df.to_dict("records"))
+def create_teams(db: Prisma, teams_df: pl.DataFrame) -> int:
+    data_teams = teams_df.select("name", "initials").to_dicts()
+    teams = db.leagueteam.create_many(data=data_teams)  # type: ignore
 
     return teams
 
 
-def create_team_divisions_relationship(db: Prisma, excel: UploadedFile) -> int:
-    teams_df = pd.read_excel(
-        excel,
-        "Teams",
-        dtype={"Division_name": str},
+def create_team_divisions_relationship(db: Prisma, teams_df: pl.DataFrame) -> int:
+    teams_db = db.leagueteam.find_many()
+    teams_id = pl.DataFrame([dict(s) for s in teams_db]).select(
+        "name", leagueTeamId=pl.col("id")
     )
 
-    teams_class = db.leagueteam.find_many()
-    teams_dict = (
-        pd.DataFrame([dict(s) for s in teams_class])
-        .loc[:, ["id", "name"]]
-        .set_index("name")
-        .to_dict("dict")["id"]
+    teams_df_id = teams_df.join(teams_id, on="name", how="inner").drop("name")
+
+    divisions_db = db.leaguedivision.find_many()
+    divisions_id = pl.DataFrame([dict(s) for s in divisions_db]).select(
+        Division_name="name", leagueDivisionId=pl.col("id")
     )
 
-    teams_df["team_id"] = teams_df["name"].apply(
-        lambda x: teams_dict[str(x)] if str(x) in teams_dict.keys() else -1
-    )
+    teams_id_divisions_id_df = teams_df_id.join(
+        divisions_id, on="Division_name", how="inner"
+    ).select("leagueTeamId", "leagueDivisionId")
 
-    teams_df = teams_df.set_index("team_id")
-    teams_df = teams_df.drop(columns=["name"])
-
-    divisions_class = db.leaguedivision.find_many()
-    divisions_dict = (
-        pd.DataFrame([dict(s) for s in divisions_class])
-        .loc[:, ["id", "name"]]
-        .set_index("name")
-        .to_dict("dict")["id"]
-    )
-
-    teams_divisions_df = teams_df["Division_name"].apply(
-        lambda x: divisions_dict[x] if x in divisions_dict.keys() else -1
-    )
-
-    data_list = []
-    for k, v in teams_divisions_df.items():
-        if k != -1 and v != -1:
-            data_point = {"leagueTeamId": k, "leagueDivisionId": v}
-            data_list.append(data_point)
-
-    team_divisions = db.leagueteamdivisions.create_many(data=data_list)
+    data_team_div = teams_id_divisions_id_df.to_dicts()
+    team_divisions = db.leagueteamdivisions.create_many(data=data_team_div)  # type: ignore
 
     return team_divisions
 
 
-def create_players(db: Prisma, excel: UploadedFile) -> int:
-    players_df = pd.read_excel(
-        excel, "Players", na_values="---", dtype=object, skiprows=1
-    ).set_index("Player")
+def create_players(db: Prisma, players_df: pl.DataFrame) -> int:
+    players_df_filter = players_df.filter(pl.col("Player").is_not_null())
 
-    players_nicks_records = players_df.loc[
-        :, players_df.columns.str.startswith("nick")
-    ].T.to_dict("list")
+    data_players_raw = players_df_filter.select(
+        name="Player",
+        nicks=pl.concat_list([pl.col("Player"), pl.col("^nick.*$")]),
+    ).to_dicts()
 
-    data_list = []
-    for name, list_nicks in players_nicks_records.items():
-        valid_list_nicks = {str(nick) for nick in list_nicks if nick is not np.nan}
-        data_point_player = {"name": str(name), "nicks": valid_list_nicks}
-        data_list.append(data_point_player)
+    data_players = [
+        {
+            "name": player.get("name"),
+            "nicks": [nick for nick in player.get("nicks", []) if nick is not None],
+        }
+        for player in data_players_raw
+    ]
 
-    players = db.leagueplayer.create_many(data=data_list)
+    players = db.leagueplayer.create_many(data=data_players)  # type: ignore
 
     return players
 
 
-def create_team_players_relationship(db: Prisma, excel: UploadedFile) -> int:
-    players_df = pd.read_excel(
-        excel, "Players", na_values="---", dtype=object, skiprows=1
+def create_team_players_relationship(db: Prisma, players_df: pl.DataFrame) -> int:
+    players_df_filter = players_df.filter(pl.col("Player").is_not_null())
+
+    players_db = db.leagueplayer.find_many()
+    players_id = pl.DataFrame([dict(s) for s in players_db]).select(
+        Player="name", leaguePlayerId=pl.col("id")
     )
 
-    players_class = db.leagueplayer.find_many()
-    players_dict = (
-        pd.DataFrame([dict(s) for s in players_class])
-        .loc[:, ["id", "name"]]
-        .set_index("name")
-        .to_dict("dict")["id"]
+    players_id_df = (
+        players_df_filter.join(players_id, on="Player", how="inner")
+        .with_columns(
+            pl.col("old team 1").fill_null(""),
+            pl.col("old team 2").fill_null(""),
+        )
+        .drop("Player")
     )
 
-    players_df["player_id"] = players_df["Player"].apply(
-        lambda x: players_dict[str(x)] if str(x) in players_dict.keys() else -1
+    teams_db = db.leagueteam.find_many()
+    teams_id = pl.DataFrame([dict(s) for s in teams_db]).select(
+        Team="name", leagueTeamId=pl.col("id")
     )
 
-    players_df = players_df.iloc[:, 1:].set_index("player_id")
+    players_id_active_team_id_df = players_id_df.join(
+        teams_id, on="Team", how="inner"
+    ).select("leaguePlayerId", "leagueTeamId", active=pl.lit(True))
 
-    teams_class = db.leagueteam.find_many()
-    teams_dict = (
-        pd.DataFrame([dict(s) for s in teams_class])
-        .loc[:, ["id", "name"]]
-        .set_index("name")
-        .to_dict("dict")["id"]
-    )
+    data_list_active = players_id_active_team_id_df.to_dicts()
+    active_players = db.leagueplayerteams.create_many(data=data_list_active)  # type: ignore
 
-    players_teams_df = players_df["Team"].apply(
-        lambda x: teams_dict[x] if x in teams_dict.keys() else -1
-    )
+    players_id_old_team_1_id_df = players_id_df.join(
+        teams_id, left_on="old team 1", right_on="Team", how="inner"
+    ).select("leaguePlayerId", "leagueTeamId", active=pl.lit(False))
 
-    data_list_active = []
-    for k, v in players_teams_df.items():
-        if k != -1 and v != -1:
-            data_point = {"leaguePlayerId": k, "leagueTeamId": v, "active": True}
-            data_list_active.append(data_point)
+    players_id_old_team_2_id_df = players_id_df.join(
+        teams_id, left_on="old team 2", right_on="Team", how="inner"
+    ).select("leaguePlayerId", "leagueTeamId", active=pl.lit(False))
 
-    active_players = db.leagueplayerteams.create_many(data=data_list_active)
+    data_list_inactive_1 = players_id_old_team_1_id_df.to_dicts()
+    data_list_inactive_2 = players_id_old_team_2_id_df.to_dicts()
+    data_list_inactive = data_list_inactive_1 + data_list_inactive_2
 
-    players_old_teams_df = players_df.loc[
-        :, players_df.columns.str.contains("team")
-    ].applymap(lambda x: teams_dict[x] if x in teams_dict.keys() else -1)
-
-    data_list_inactive = []
-    for col in players_old_teams_df.columns:
-        for k, v in players_old_teams_df[col].items():
-            if k != -1 and v != -1:
-                data_point = {"leaguePlayerId": k, "leagueTeamId": v, "active": False}
-                data_list_inactive.append(data_point)
-
-    inactive_players = db.leagueplayerteams.create_many(data=data_list_inactive)
+    inactive_players = db.leagueplayerteams.create_many(data=data_list_inactive)  # type: ignore
 
     return active_players + inactive_players
 
 
-def create_matches(db: Prisma, excel: UploadedFile) -> int:
-    matches_df = pd.read_excel(
-        excel,
-        "Matches",
-        dtype={"Division_name": str, "Matchday": str},
+def create_matches(db: Prisma, matches_df: pl.DataFrame) -> int:
+    matches_df_final = get_matches_title_df(matches_df)
+
+    divisions_db = db.leaguedivision.find_many()
+    divisions_df = pl.DataFrame([dict(s) for s in divisions_db]).select(
+        Division_name="name", leagueDivisionId=pl.col("id")
     )
 
-    matches_df = (
-        pl.DataFrame(matches_df)
-        .filter((pl.col("Team1_name") != "-") & (pl.col("Team2_name") != "-"))
-        .to_pandas()
+    data_matches = (
+        matches_df_final.join(divisions_df, on="Division_name", how="inner")
+        .select(
+            id=pl.col("id"),
+            date=pl.col("Date_Time"),
+            matchday=pl.col("Matchday"),
+            gameNumber=pl.col("Game_number"),
+            title=pl.col("title"),
+            leagueDivisionId=pl.col("leagueDivisionId"),
+            defwin=pl.col("Defwin"),
+            addRed=pl.col("Add_red"),
+            addBlue=pl.col("Add_blue"),
+            replayURL=pl.col("Replay"),
+        )
+        .to_dicts()
     )
 
-    matches_df["Title"] = matches_df.apply(get_title, axis=1)
-    matches_df["Defwin"] = matches_df["Defwin"].fillna(0)
-    matches_df["Add_red"] = matches_df["Add_red"].fillna(0)
-    matches_df["Add_blue"] = matches_df["Add_blue"].fillna(0)
-    matches_df["Replay"] = matches_df["Replay"].fillna("")
-
-    divisions_class = db.leaguedivision.find_many()
-    divisions_df = pd.DataFrame([dict(s) for s in divisions_class]).rename(
-        columns={"id": "Division_id", "name": "Division_name"}
-    )
-
-    matches_dict_records = matches_df.merge(
-        divisions_df, how="left", on="Division_name"
-    ).to_dict("records")
-
-    data_list: list[LeagueMatchCreateWithoutRelationsInput] = [
-        {
-            "id": x["id"],
-            "leagueDivisionId": int(x["Division_id"]),
-            "matchday": x["Matchday"],
-            "gameNumber": x["Game_number"],
-            "date": datetime.combine(
-                x["Date"],
-                datetime.strptime(x["Time"], "%I:%M:%S %p").time(),
-            ),
-            "title": x["Title"],
-            "defwin": x["Defwin"],
-            "addRed": x["Add_red"],
-            "addBlue": x["Add_blue"],
-            "replayURL": x["Replay"],
-        }
-        for x in matches_dict_records
-    ]
-
-    matches = db.leaguematch.create_many(data=data_list)
+    matches = db.leaguematch.create_many(data=data_matches)  # type: ignore
     return matches
 
 
-def create_matches_details(db: Prisma, excel: UploadedFile) -> int:
-    matches_df = pd.read_excel(
-        excel,
-        "Matches",
-        dtype={"Division_name": str, "Matchday": str},
+def create_matches_details(db: Prisma, matches_df: pl.DataFrame) -> int:
+    matches_title_df = get_matches_title_df(matches_df)
+
+    teams_db = db.leagueteam.find_many()
+    teams_df = pl.DataFrame([dict(s) for s in teams_db]).select(
+        Team_name="name", leagueTeamId=pl.col("id")
     )
 
-    matches_df = (
-        pl.DataFrame(matches_df)
-        .filter((pl.col("Team1_name") != "-") & (pl.col("Team2_name") != "-"))
-        .to_pandas()
+    matches_filter_df = (
+        matches_title_df.join(
+            teams_df,
+            left_on="Team1_name",
+            right_on="Team_name",
+            how="semi",
+        )
+        .join(
+            teams_df,
+            left_on="Team2_name",
+            right_on="Team_name",
+            how="semi",
+        )
+        .select(
+            leagueMatchId=pl.col("id"),
+            startsRed=(~pl.col("Inverse")),
+            home=(pl.lit(True)),
+            Team1_name=pl.col("Team1_name"),
+            Team2_name=pl.col("Team2_name"),
+        )
     )
 
-    matches_df["Title"] = matches_df.apply(get_title, axis=1)
+    matches_team1_df = matches_filter_df.join(
+        teams_df,
+        left_on="Team1_name",
+        right_on="Team_name",
+        how="inner",
+    ).select(pl.exclude("^Team.*$"))
+    data_matches_team_1 = matches_team1_df.to_dicts()
 
-    teams_class = db.leagueteam.find_many()
-    teams_dict = (
-        pd.DataFrame([dict(s) for s in teams_class])
-        .loc[:, ["id", "name"]]
-        .set_index("name")
-        .to_dict("dict")["id"]
-    )
+    matches_team2_df = matches_filter_df.join(
+        teams_df,
+        left_on="Team2_name",
+        right_on="Team_name",
+        how="inner",
+    ).select(pl.exclude("^Team.*$"))
+    data_matches_team_2 = matches_team2_df.to_dicts()
 
-    matches_df["Team1_name"] = matches_df["Team1_name"].apply(
-        lambda x: teams_dict[x] if x in teams_dict.keys() else -1
-    )
-
-    matches_df["Team2_name"] = matches_df["Team2_name"].apply(
-        lambda x: teams_dict[x] if x in teams_dict.keys() else -1
-    )
-
-    matches_title_class = db.leaguematch.find_many()
-    matches_title_df = pd.DataFrame([dict(s) for s in matches_title_class]).loc[
-        :, ["id"]
-    ]
-
-    matches_dict_records = matches_df.merge(
-        matches_title_df, how="left", on="id"
-    ).to_dict("records")
-
-    data_list: list[LeagueMatchDetailCreateWithoutRelationsInput] = []
-    for x in matches_dict_records:
-        if x["Team1_name"] != -1:
-            data_point_1: LeagueMatchDetailCreateWithoutRelationsInput = {
-                "leagueMatchId": x["id"],
-                "leagueTeamId": x["Team1_name"],
-                "startsRed": True if x["Inverse"] == 0 else False,
-                "home": True,
-            }
-            data_list.append(data_point_1)
-        if x["Team2_name"] != -1:
-            data_point_2: LeagueMatchDetailCreateWithoutRelationsInput = {
-                "leagueMatchId": x["id"],
-                "leagueTeamId": x["Team2_name"],
-                "startsRed": False if x["Inverse"] == 0 else True,
-                "home": False,
-            }
-            data_list.append(data_point_2)
-
-    matches_details = db.leaguematchdetail.create_many(data=data_list)
+    data_matches = data_matches_team_1 + data_matches_team_2
+    matches_details = db.leaguematchdetail.create_many(data=data_matches)  # type: ignore
 
     return matches_details
 
@@ -346,69 +302,189 @@ def clear_league_db_system(db: Prisma) -> None:
     st.button("Clear league database", on_click=confirm_clear_league_db, args=(db,))
 
 
-def treat_excel_file(db: Prisma, excel_file: UploadedFile) -> bool:
-    try:
-        season = create_season(db, excel_file)
-    except Exception as e:
-        st.error(f"Error while creating season. Clearing database.\n\n{e}")
-        clear_league_db(db)
-        return False
+def get_season_df(input_league: Input) -> pl.DataFrame:
+    dtype = {"name": str}
+    usecols = list(dtype.keys())
+    return input_league.get_dataframe("Season", usecols=usecols, dtype=dtype)
 
-    try:
-        create_divisions(db, excel_file, season)
-    except Exception as e:
-        st.error(f"Error while creating divisions. Clearing database.\n\n{e}")
-        clear_league_db(db)
-        return False
 
-    try:
-        create_teams(db, excel_file)
-    except Exception as e:
-        st.error(f"Error while creating teams. Clearing database.\n\n{e}")
-        clear_league_db(db)
-        return False
+def get_divisions_df(input_league: Input) -> pl.DataFrame:
+    dtype = {"name": str}
+    usecols = list(dtype.keys())
+    return input_league.get_dataframe("Divisions", usecols=usecols, dtype=dtype)
 
-    try:
-        create_team_divisions_relationship(db, excel_file)
-    except Exception as e:
-        st.error(
-            "Error while creating team divisions relationship. "
-            + f"Clearing database.\n\n{e}"
+
+def get_teams_df(input_league: Input) -> pl.DataFrame:
+    dtype = {"Division_name": str, "name": str, "initials": str}
+    usecols = list(dtype.keys())
+    return input_league.get_dataframe("Teams", usecols=usecols, dtype=dtype)
+
+
+def get_players_df(input_league: Input) -> pl.DataFrame:
+    dtype = {
+        "Player": str,
+        "Team": str,
+        "old team 1": str,
+        "old team 2": str,
+        "nick1": str,
+        "nick2": str,
+        "nick3": str,
+        "nick4": str,
+        "nick5": str,
+        "nick6": str,
+        "nick7": str,
+        "nick8": str,
+        "nick9": str,
+        "nick10": str,
+    }
+    usecols = list(dtype.keys())
+    return input_league.get_dataframe(
+        "Players", usecols=usecols, dtype=dtype, skiprows=1
+    )
+
+
+def get_matches_df(input_league: Input) -> pl.DataFrame:
+    dtype = {
+        "id": int,
+        "Matchday": str,
+        "Game_number": int,
+        "Date": str,
+        "Time": str,
+        "Team1_name": str,
+        "Team2_name": str,
+        "Division_name": str,
+        "Period1_id": float,
+        "Period2_id": float,
+        "Period3_id": float,
+        "Score1": float,
+        "Score2": float,
+        "Inverse": bool,
+        "Defwin": float,
+        "Add_red": float,
+        "Add_blue": float,
+        "Replay": str,
+    }
+    usecols = list(dtype.keys())
+    return input_league.get_dataframe(
+        "Matches", usecols=usecols, dtype=dtype, parse_dates=[["Date", "Time"]]
+    )
+
+
+def get_matches_title_df(matches_df: pl.DataFrame) -> pl.DataFrame:
+    matches_df_filter = matches_df.filter(
+        (pl.col("Team1_name") != "-") & (pl.col("Team2_name") != "-")
+    )
+
+    matches_df_fix = matches_df_filter.with_columns(
+        pl.col("id").cast(int),
+        pl.col("Game_number").cast(int),
+        pl.col("^Period.*$").cast(int),
+        pl.col("^Score.*$").cast(int),
+        pl.col("^Add_.*$").cast(int).fill_null(0),
+        pl.col("Defwin").cast(int).fill_null(0),
+        pl.col("Replay").fill_null(""),
+    )
+
+    matches_df_id_list = matches_df_fix.get_column("id").to_list()
+    matches_df_title_list = (
+        matches_df_filter.select(
+            "id", "Matchday", "Game_number", "Team1_name", "Team2_name"
         )
-        clear_league_db(db)
-        return False
+        .to_pandas()
+        .apply(get_title, axis=1)
+        .to_list()
+    )
 
-    try:
-        create_players(db, excel_file)
-    except Exception as e:
-        st.error(
-            "Error while creating players. " + f"Clearing database.\n\n{e}",
-        )
-        clear_league_db(db)
-        return False
+    matches_df_title = pl.DataFrame(
+        {"id": matches_df_id_list, "title": matches_df_title_list}
+    )
 
-    try:
-        create_team_players_relationship(db, excel_file)
-    except Exception as e:
-        st.error(
-            f"Error while creating team players relationship. Clearing database.\n\n{e}"
-        )
-        clear_league_db(db)
-        return False
+    matches_df_final = matches_df_fix.join(matches_df_title, on="id", how="inner")
+    return matches_df_final
 
-    try:
-        create_matches(db, excel_file)
-    except Exception as e:
-        st.error(f"Error while creating matches. Clearing database.\n\n{e}")
-        clear_league_db(db)
-        return False
 
-    try:
-        create_matches_details(db, excel_file)
-    except Exception as e:
-        st.error(f"Error while creating match details. Clearing database.\n\n{e}")
+def treat_input(db: Prisma, input_league: Input) -> bool:
+    with st.spinner("Processing file..."):
+        season_df = get_season_df(input_league)
+        divisions_df = get_divisions_df(input_league)
+        teams_df = get_teams_df(input_league)
+        players_df = get_players_df(input_league)
+        matches_df = get_matches_df(input_league)
+
+    with st.spinner("Clearing database..."):
         clear_league_db(db)
-        return False
+
+    with st.spinner("Creating database entries..."):
+        try:
+            season = create_season(db, season_df)
+        except Exception as e:
+            st.error(f"Error while creating season. Clearing database.\n\n{e}")
+            traceback.print_exc()
+            clear_league_db(db)
+            return False
+
+        try:
+            create_divisions(db, divisions_df, season)
+        except Exception as e:
+            st.error(f"Error while creating divisions. Clearing database.\n\n{e}")
+            traceback.print_exc()
+            clear_league_db(db)
+            return False
+
+        try:
+            create_teams(db, teams_df)
+        except Exception as e:
+            st.error(f"Error while creating teams. Clearing database.\n\n{e}")
+            traceback.print_exc()
+            clear_league_db(db)
+            return False
+
+        try:
+            create_team_divisions_relationship(db, teams_df)
+        except Exception as e:
+            st.error(
+                "Error while creating team divisions relationship. "
+                + f"Clearing database.\n\n{e}"
+            )
+            traceback.print_exc()
+            clear_league_db(db)
+            return False
+
+        try:
+            create_players(db, players_df)
+        except Exception as e:
+            st.error(
+                "Error while creating players. " + f"Clearing database.\n\n{e}",
+            )
+            traceback.print_exc()
+            clear_league_db(db)
+            return False
+
+        try:
+            create_team_players_relationship(db, players_df)
+        except Exception as e:
+            st.error(
+                f"Error while creating team players relationship. Clearing database.\n\n{e}"
+            )
+            traceback.print_exc()
+            clear_league_db(db)
+            return False
+
+        try:
+            create_matches(db, matches_df)
+        except Exception as e:
+            st.error(f"Error while creating matches. Clearing database.\n\n{e}")
+            traceback.print_exc()
+            clear_league_db(db)
+            return False
+
+        try:
+            create_matches_details(db, matches_df)
+        except Exception as e:
+            st.error(f"Error while creating match details. Clearing database.\n\n{e}")
+            traceback.print_exc()
+            clear_league_db(db)
+            return False
 
     return True
 
@@ -418,7 +494,7 @@ def download_league_data(
     teams_df: pl.DataFrame,
     matches_df: pl.DataFrame,
     players_df: pl.DataFrame,
-) -> None:
+) -> io.BytesIO:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
         divisions_df.to_pandas().to_excel(writer, sheet_name="Divisions", index=False)
@@ -482,7 +558,7 @@ def download_league_data_system(db: Prisma) -> None:
                 [pl.col("nicks").arr.get(i - 1).alias(f"nick{i}") for i in range(1, 7)],
             )
             .with_columns(
-                pl.col("active_team").arr.get(0).alias("TEAM"),
+                pl.col("active_team").arr.get(0).alias("Team"),
             )
             .with_columns(
                 [
@@ -520,12 +596,15 @@ def download_league_data_system(db: Prisma) -> None:
         ]
         matches_df = pl.DataFrame(matches_clean)
 
-    st.download_button(
+    col1, col2 = st.columns([1, 2])
+    col1.download_button(
         label="Download data as Excel",
         data=download_league_data(dnames_df, teams_df, matches_df, players_df),
         file_name="FUTLIFE_league.xlsx",
         mime="application/vnd.ms-excel",
+        disabled=True,
     )
+    col2.warning("Download is temporarily broken")
 
     return
 
@@ -552,14 +631,37 @@ def main() -> None:
 
     st.write("## Database management")
 
-    st.write("### League database")
+    st.write("### Delete league database")
 
     clear_league_db_system(db)
 
-    excel_file = st.file_uploader("Upload excel file", type=["xlsx"])
-    btn_update = st.button("Update database", disabled=(not excel_file))
+    st.write("### Update league database")
+
+    col, _ = st.columns([1, 2])
+    select_method = col.selectbox(
+        "Select input method",
+        ["Google Spreadsheet", "Excel file"],
+    )
+    if select_method == "Google Spreadsheet":
+        url_input = st.text_input(
+            "Enter spreadsheet URL",
+            value=os.environ["SPREADSHEET_URL"],
+        )
+        input_league = Input(excel=None, spreadsheet_url=url_input)
+    else:
+        excel_file = st.file_uploader("Upload excel file", type=["xlsx"])
+        input_league = Input(excel=excel_file, spreadsheet_url=None)
+
+    disabled = (input_league.excel is None and select_method == "Excel file") or (
+        (input_league.spreadsheet_url == "" or input_league.spreadsheet_url is None)
+        and select_method == "Google Spreadsheet"
+    )
+    btn_update = st.button(
+        "Update database",
+        disabled=disabled,
+    )
     if btn_update:
-        success = treat_excel_file(db, excel_file)
+        success = treat_input(db, input_league)
         if success:
             st.success("File processed")
 
