@@ -192,7 +192,12 @@ def radio_team_starts(match: LeagueMatch) -> bool:
 
 
 def radio_defwin(match: LeagueMatch) -> int:
-    opt_start_name = [None, match.detail[0].team.name, match.detail[1].team.name]
+    opt_start_name = [
+        None,
+        match.detail[0].team.name,
+        match.detail[1].team.name,
+        "Both",
+    ]
     team_defwin = st.radio(
         "Defwin for",
         options=opt_start_name,

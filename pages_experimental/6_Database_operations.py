@@ -66,7 +66,7 @@ class Input:
         return df
 
 
-def get_title(match: pl.DataFrame) -> str:
+def get_title(match: pd.DataFrame) -> str:
     # id = match[0]
     md = match[1]
     game_nb = match[2]

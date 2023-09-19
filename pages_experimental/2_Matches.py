@@ -94,7 +94,10 @@ def build_match_db(match_list: list[LeagueMatch]):
         if len(m.detail) > 1:
             team2 = m.detail[1].team.name
         if info_match.score[0] == -1:
-            score = ""
+            if m.defwin == 3:
+                score = "D-D"
+            else:
+                score = ""
         obj = {
             "division": m.LeagueDivision.name,
             "matchday": m.matchday,

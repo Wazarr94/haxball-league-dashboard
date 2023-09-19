@@ -112,12 +112,12 @@ def build_match_db_team(
         if m.detail[1].team.id == team.id:
             score_team = info_match.score[1]
             score_opponent = info_match.score[0]
-            if m.defwin == 1:
+            if m.defwin == 1 or m.defwin == 3:
                 standing_team.defwins += 1
         else:
             score_team = info_match.score[0]
             score_opponent = info_match.score[1]
-            if m.defwin == 2:
+            if m.defwin == 2 or m.defwin == 3:
                 standing_team.defwins += 1
 
         if score_team > score_opponent:
