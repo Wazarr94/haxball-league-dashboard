@@ -385,7 +385,6 @@ def get_players_df(input_league: Input) -> pl.DataFrame:
 
 def get_matches_df(input_league: Input) -> pl.DataFrame:
     dtype = {
-        "id": int,
         "Matchday": str,
         "Game_number": int,
         "Date": str,
@@ -396,8 +395,6 @@ def get_matches_df(input_league: Input) -> pl.DataFrame:
         "Period1_id": float,
         "Period2_id": float,
         "Period3_id": float,
-        "Score1": float,
-        "Score2": float,
         "Inverse": bool,
         "Defwin": float,
         "Add_red": float,
@@ -411,7 +408,7 @@ def get_matches_df(input_league: Input) -> pl.DataFrame:
 
 
 def get_matches_title_df(matches_df: pl.DataFrame) -> pl.DataFrame:
-    matches_df_filter = matches_df.filter(
+    matches_df_filter = matches_df.with_row_count("id", offset=1).filter(
         (pl.col("Team1_name") != "-") & (pl.col("Team2_name") != "-")
     )
 
@@ -419,7 +416,6 @@ def get_matches_title_df(matches_df: pl.DataFrame) -> pl.DataFrame:
         pl.col("id").cast(int),
         pl.col("Game_number").cast(int),
         pl.col("^Period.*$").cast(int),
-        pl.col("^Score.*$").cast(int),
         pl.col("^Add_.*$").cast(int).fill_null(0),
         pl.col("Defwin").cast(int).fill_null(0),
         pl.col("Replay").fill_null(""),
