@@ -44,16 +44,6 @@ def config_pages():
                 "Database operations",
                 "💾",
             ),
-            Page(
-                "pages_experimental/7_Edit_match_details.py",
-                "Edit match details",
-                "⚙️",
-            ),
-            Page(
-                "pages_experimental/8_Edit_player_details.py",
-                "Edit player details",
-                "🔧",
-            ),
         ]
     )
 
