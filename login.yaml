@@ -3,18 +3,6 @@ credentials:
     wazarr:
       name: Wazarr
       password: $2y$10$IvH5hPK4drS4qkIiKD5hNOXpFvMR1LW8sro6e6XlmbXCvc9vRmekm
-    daffyd:
-      name: Daffyd
-      password: $2y$10$o6OvctkoSUCkIzwzGXps7ecgRKHleqjWMGGqjoecMabxuwHCKykt2
-    girlontar:
-      name: Girl
-      password: $2y$10$wTEQcS18EWyD6m6OxmYe3uEWx.3DmyKSdNGSYVTW3TH4eH1ojwUbq
-    atuntija:
-      name: AT
-      password: $2y$10$eFN/YT0z7XuCKrFspG6yTeeTgxtopK0Omqqfxofzpp59FDN5YQf0y
-    youri:
-      name: Youri
-      password: $2y$10$W1juGjOsm/BPrloUzFslseOQ8ZW8rjkYD7DlnB0gBgr/SDHw7AG7m
 
 cookie:
   expiry_days: 3650
