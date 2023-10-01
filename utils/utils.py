@@ -51,7 +51,7 @@ def get_info_match(match: LeagueMatch) -> InfoMatch:
     elif match.defwin == 2:
         return InfoMatch((0, DEFWIN_SCORE), (0, 0), (0, 0))
     if match.defwin == 3 or len(match.periods) == 0:
-        return InfoMatch((-1, -1), (0, 0), (0, 0))
+        return InfoMatch((-5, -5), (0, 0), (0, 0))
     md_1 = match.detail[0]
     score_1 = sum([p.scoreRed for p in match.periods[::2]]) + sum(
         [p.scoreBlue for p in match.periods[1::2]]
