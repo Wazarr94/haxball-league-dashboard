@@ -4,4 +4,4 @@ Dashboard for statistics for haxball leagues.
 
 _Stack used:_ (Railway, Docker), Streamlit, Prisma, Supabase, PostgreSQL, GCP, Node.js
 
-Link: <https://futlife.streamlit.app/>
+Link: <https://afl-stats.streamlit.app/>
