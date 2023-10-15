@@ -6,16 +6,23 @@ from statistics import mode
 from typing import Literal, Optional
 
 import streamlit as st
-from prisma.models import LeagueMatch, LeaguePlayer, LeagueTeam, Period, PlayerStats
 
+from generated.prisma.models import (
+    LeagueMatch,
+    LeaguePlayer,
+    LeagueTeam,
+    Period,
+    PlayerStats,
+)
 from utils.constants import CS_TIME_NECESSARY, DEFWIN_SCORE, GAME_TIME
 
 
 class GamePosition(IntEnum):
     unknown = 0
     GK = 1
-    CM = 2
-    ST = 3
+    DM = 2
+    AM = 3
+    ST = 4
 
 
 def hide_streamlit_elements() -> st._DeltaGenerator:
@@ -43,8 +50,8 @@ def get_info_match(match: LeagueMatch) -> InfoMatch:
         return InfoMatch((DEFWIN_SCORE, 0), (0, 0), (0, 0))
     elif match.defwin == 2:
         return InfoMatch((0, DEFWIN_SCORE), (0, 0), (0, 0))
-    if len(match.periods) == 0:
-        return InfoMatch((-1, -1), (0, 0), (0, 0))
+    if match.defwin == 3 or len(match.periods) == 0:
+        return InfoMatch((-5, -5), (0, 0), (0, 0))
     md_1 = match.detail[0]
     score_1 = sum([p.scoreRed for p in match.periods[::2]]) + sum(
         [p.scoreBlue for p in match.periods[1::2]]

@@ -4,10 +4,15 @@ from typing import Optional
 import pandas as pd
 import polars as pl
 import streamlit as st
-from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
 from st_pages import add_indentation
 
+from generated.prisma import Prisma
+from generated.prisma.models import (
+    LeagueDivision,
+    LeagueMatch,
+    LeaguePlayer,
+    LeagueTeam,
+)
 from utils.constants import GAME_TIME, LEAGUE_TITLE, TEAM_SIZE
 from utils.data import (
     get_divisions,
@@ -402,6 +407,10 @@ def main():
         matchdays_options_div = matchday_options[div_select.id]
     matchdays_values = range(len(matchdays_options_div))
     matchday_max = get_max_matchday_stats(matches_list, div_select)
+    if len(matchdays_options_div) == 0:
+        matchdays_options_div = [1, 1]
+        matchdays_values = [0, 1]
+        matchday_max = 1
 
     matchdays_select = st.select_slider(
         "Matchdays",

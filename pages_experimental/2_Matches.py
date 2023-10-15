@@ -3,12 +3,12 @@ from typing import Optional
 
 import pandas as pd
 import streamlit as st
-from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from st_pages import add_indentation
 
+from generated.prisma import Prisma
+from generated.prisma.models import LeagueDivision, LeagueMatch
 from utils.constants import LEAGUE_TITLE
 from utils.data import get_divisions, get_matches, init_connection
 from utils.utils import get_info_match, get_unique_order, hide_streamlit_elements
@@ -52,6 +52,8 @@ def get_md_select(
             matches_div = [m for m in matches if m.leagueDivisionId == div.id]
             md_list = get_unique_order([m.matchday for m in matches_div])
             matchdays_options_div = {v: i for i, v in enumerate(md_list)}
+            if len(matchdays_options_div) == 0:
+                matchdays_options_div = [1, 1]
 
         matchday_select = col2.select_slider(
             "Matchday",
@@ -92,7 +94,10 @@ def build_match_db(match_list: list[LeagueMatch]):
         if len(m.detail) > 1:
             team2 = m.detail[1].team.name
         if info_match.score[0] == -1:
-            score = ""
+            if m.defwin == 3:
+                score = "D-D"
+            else:
+                score = ""
         obj = {
             "division": m.LeagueDivision.name,
             "matchday": m.matchday,

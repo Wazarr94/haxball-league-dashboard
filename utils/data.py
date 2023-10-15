@@ -14,16 +14,16 @@ generate_prisma_client()
 
 
 try:
-    from prisma import Prisma
+    from generated.prisma import Prisma
 except RuntimeError:
     from prisma_cleanup import cleanup
 
     cleanup()
     print("GOT RUNTIME ERROR")
     generate_prisma_client()
-    from prisma import Prisma
+    from generated.prisma import Prisma
 
-from prisma.models import (  # noqa
+from generated.prisma.models import (  # noqa
     LeagueDivision,
     LeagueMatch,
     LeaguePlayer,

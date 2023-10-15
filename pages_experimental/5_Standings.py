@@ -3,11 +3,11 @@ from typing import Optional
 
 import pandas as pd
 import streamlit as st
-from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
 from st_pages import add_indentation
 
-from utils.constants import LEAGUE_TITLE
+from generated.prisma import Prisma
+from generated.prisma.models import LeagueDivision, LeagueMatch, LeagueTeam
+from utils.constants import DEFWIN_SCORE, LEAGUE_TITLE
 from utils.data import (
     get_divisions,
     get_matches,
@@ -98,6 +98,7 @@ def build_match_db_team(
     )
     for m in matches_div:
         info_match = get_info_match(m)
+        # game is not played or the teams are not filled in
         if info_match.score[0] == -1 or len(m.detail) < 2:
             continue
         if not any([md.team.name == team.name for md in m.detail]):
@@ -109,26 +110,31 @@ def build_match_db_team(
             continue
 
         standing_team.games += 1
+
         if m.detail[1].team.id == team.id:
             score_team = info_match.score[1]
             score_opponent = info_match.score[0]
-            if m.defwin == 1:
+            if m.defwin == 1 or m.defwin == 3:
                 standing_team.defwins += 1
         else:
             score_team = info_match.score[0]
             score_opponent = info_match.score[1]
-            if m.defwin == 2:
+            if m.defwin == 2 or m.defwin == 3:
                 standing_team.defwins += 1
 
-        if score_team > score_opponent:
-            standing_team.wins += 1
-        elif score_team == score_opponent:
-            standing_team.draws += 1
-        else:
+        if m.defwin == 3:
+            standing_team.goals_conceded += DEFWIN_SCORE
             standing_team.losses += 1
+        else:
+            if score_team > score_opponent:
+                standing_team.wins += 1
+            elif score_team == score_opponent:
+                standing_team.draws += 1
+            else:
+                standing_team.losses += 1
 
-        standing_team.goals_scored += score_team
-        standing_team.goals_conceded += score_opponent
+            standing_team.goals_scored += score_team
+            standing_team.goals_conceded += score_opponent
 
     return standing_team
 

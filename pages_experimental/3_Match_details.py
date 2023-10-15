@@ -2,10 +2,15 @@ import copy
 from typing import Optional
 
 import streamlit as st
-from prisma import Prisma
-from prisma.models import LeagueDivision, LeagueMatch, LeaguePlayer, LeagueTeam
 from st_pages import add_indentation
 
+from generated.prisma import Prisma
+from generated.prisma.models import (
+    LeagueDivision,
+    LeagueMatch,
+    LeaguePlayer,
+    LeagueTeam,
+)
 from utils.data import (
     get_divisions,
     get_matches,
@@ -52,6 +57,8 @@ def select_match(
         matches_div = [m for m in matches if m.leagueDivisionId == div_select.id]
         md_list = get_unique_order([m.matchday for m in matches_div])
         matchdays_options_div = {v: i for i, v in enumerate(md_list)}
+        if len(matchdays_options_div) == 0:
+            matchdays_options_div = [1, 1]
 
     matchday_select = st.select_slider("Matchday", options=matchdays_options_div)
 
