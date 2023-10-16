@@ -2,7 +2,7 @@ import subprocess
 
 import streamlit as st
 
-from utils.utils import settings
+from utils.settings import settings
 
 
 def generate_prisma_client():

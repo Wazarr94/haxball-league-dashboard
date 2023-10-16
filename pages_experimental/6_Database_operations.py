@@ -18,7 +18,8 @@ from utils.data import (
     get_teams,
     init_connection,
 )
-from utils.utils import get_info_match, hide_streamlit_elements, settings
+from utils.settings import settings
+from utils.utils import get_info_match, hide_streamlit_elements
 
 hide_streamlit_elements()
 add_indentation()
@@ -652,7 +653,6 @@ def main() -> None:
         st.session_state["db"] = db
 
     db: Prisma = st.session_state["db"]
-    print(settings)
 
     if (
         "authentication_status" not in st.session_state
