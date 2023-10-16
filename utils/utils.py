@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     SPREADSHEET_URL: str
 
     class Config:
-        env_file = ".env"
+        env_file = ".streamlit/secrets.toml"
         env_file_encoding = "utf-8"
 
 
