@@ -1,5 +1,4 @@
 import io
-import os
 import re
 import traceback
 from dataclasses import dataclass
@@ -200,6 +199,9 @@ def create_team_players_relationship(db: Prisma, players_df: pl.DataFrame) -> in
 
 
 def create_matches(db: Prisma, matches_df: pl.DataFrame) -> int:
+    if matches_df.height == 0:
+        return 0
+
     matches_df_final = get_matches_title_df(matches_df)
 
     divisions_db = db.leaguedivision.find_many()
@@ -267,6 +269,9 @@ def create_matches(db: Prisma, matches_df: pl.DataFrame) -> int:
 
 
 def create_matches_details(db: Prisma, matches_df: pl.DataFrame) -> int:
+    if matches_df.height == 0:
+        return 0
+
     matches_title_df = get_matches_title_df(matches_df)
 
     teams_db = db.leagueteam.find_many()
