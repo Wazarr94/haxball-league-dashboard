@@ -13,7 +13,12 @@ from utils.data import (
     get_matches,
     init_connection,
 )
-from utils.utils import get_info_match, get_unique_order, hide_streamlit_elements
+from utils.utils import (
+    get_info_match,
+    get_unique_order,
+    hide_streamlit_elements,
+    is_match_played,
+)
 
 hide_streamlit_elements()
 add_indentation()
@@ -99,7 +104,7 @@ def build_match_db_team(
     for m in matches_div:
         info_match = get_info_match(m)
         # game is not played or the teams are not filled in
-        if info_match.score[0] == -1 or len(m.detail) < 2:
+        if not is_match_played(m):
             continue
         if not any([md.team.name == team.name for md in m.detail]):
             continue

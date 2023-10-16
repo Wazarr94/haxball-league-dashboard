@@ -1,7 +1,8 @@
-import os
 import subprocess
 
 import streamlit as st
+
+from utils.settings import settings
 
 
 def generate_prisma_client():
@@ -34,7 +35,7 @@ from generated.prisma.models import (  # noqa
 
 @st.cache_resource
 def init_connection() -> Prisma:
-    url = os.environ["DATABASE_URL"]
+    url = settings.DATABASE_URL
     db = Prisma(
         datasource={
             "url": url,

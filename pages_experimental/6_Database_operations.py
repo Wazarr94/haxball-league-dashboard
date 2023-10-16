@@ -19,6 +19,7 @@ from utils.data import (
     get_teams,
     init_connection,
 )
+from utils.settings import settings
 from utils.utils import get_info_match, hide_streamlit_elements
 
 hide_streamlit_elements()
@@ -395,7 +396,7 @@ def get_matches_df(input_league: Input) -> pl.DataFrame:
         "Period1_id": float,
         "Period2_id": float,
         "Period3_id": float,
-        "Inverse": bool,
+        "Inverse": float,
         "Defwin": float,
         "Add_red": float,
         "Add_blue": float,
@@ -419,6 +420,7 @@ def get_matches_title_df(matches_df: pl.DataFrame) -> pl.DataFrame:
         pl.col("^Add_.*$").cast(int).fill_null(0),
         pl.col("Defwin").cast(int).fill_null(0),
         pl.col("Replay").fill_null(""),
+        pl.col("Inverse").cast(bool).fill_null(False),
     )
 
     matches_df_id_list = matches_df_fix.get_column("id").to_list()
@@ -682,7 +684,7 @@ def main() -> None:
     if select_method == "Google Sheets":
         url_input = st.text_input(
             "Enter spreadsheet URL",
-            value=os.environ["SPREADSHEET_URL"],
+            value=settings.SPREADSHEET_URL,
         )
         input_league = Input(excel=None, spreadsheet_url=url_input)
     else:
