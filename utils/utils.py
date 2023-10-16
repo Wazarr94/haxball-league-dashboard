@@ -6,6 +6,7 @@ from statistics import mode
 from typing import Literal, Optional
 
 import streamlit as st
+from pydantic import BaseSettings
 
 from generated.prisma.models import (
     LeagueMatch,
@@ -15,6 +16,18 @@ from generated.prisma.models import (
     PlayerStats,
 )
 from utils.constants import CS_TIME_NECESSARY, DEFWIN_SCORE, GAME_TIME
+
+
+class Settings(BaseSettings):
+    DATABASE_URL: str
+    SPREADSHEET_URL: str
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+
+settings = Settings()
 
 
 class GamePosition(IntEnum):

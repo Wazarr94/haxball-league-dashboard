@@ -9,7 +9,7 @@ from st_pages import add_indentation
 
 from generated.prisma import Prisma
 from generated.prisma.models import LeagueDivision, LeagueMatch
-from utils.constants import LEAGUE_TITLE
+from utils.constants import DEFWIN_SCORE, LEAGUE_TITLE
 from utils.data import get_divisions, get_matches, init_connection
 from utils.utils import get_info_match, get_unique_order, hide_streamlit_elements
 
@@ -93,7 +93,7 @@ def build_match_db(match_list: list[LeagueMatch]):
         team2 = ""
         if len(m.detail) > 1:
             team2 = m.detail[1].team.name
-        if info_match.score[0] == -1:
+        if info_match.score[0] == -DEFWIN_SCORE:
             if m.defwin == 3:
                 score = "D-D"
             else:

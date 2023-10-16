@@ -1,13 +1,10 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
-from dotenv import load_dotenv
 from st_pages import Page, Section, add_indentation, show_pages
 
 from utils.data import init_connection
 from utils.utils import hide_streamlit_elements
-
-load_dotenv()
 
 hide_streamlit_elements()
 

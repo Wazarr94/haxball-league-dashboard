@@ -2,7 +2,7 @@
 .idea/
 pyproject.toml
 poetry.lock
-.env
+*.env
 .streamlit/*
 login.private.yaml
 
