@@ -3,6 +3,7 @@ import streamlit_authenticator as stauth
 import yaml
 from st_pages import Page, Section, add_indentation, show_pages
 
+from utils.constants import LEAGUE_NAME
 from utils.data import init_connection
 from utils.utils import hide_streamlit_elements
 
@@ -55,7 +56,7 @@ def main():
         st.cache_resource.clear()
 
     st.write("# Home page")
-    st.write("#### Welcome to the FUTLIFE dashboard")
+    st.write(f"#### Welcome to the {LEAGUE_NAME} dashboard")
 
     authenticator = init_login()
     authenticator.login("Admin login", "main")

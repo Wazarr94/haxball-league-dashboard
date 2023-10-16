@@ -2,22 +2,7 @@ credentials:
   usernames:
     wazarr:
       name: Wazarr
-      password: $2y$10$YTgbdrvshz3DTRkzPhj5kudAXPE2VbslCNOf/CoIjN0D6F4vt.Rd.
-    wilmot:
-      name: Wilmot
-      password: $2y$10$mZuK1oC8JlI1kO8WP5nOSukLIK7YhPgCcDDDbn8OUwt9sK7/mmNJG
-    fernandell:
-      name: Fernandell
-      password: $2y$10$Skihb1R.d6dct2kGhPJT7uUdyv.KY3ifqs.cFRc.vvv3ssSFt1AC2
-    flamer:
-      name: Flamer
-      password: $2y$10$.oN.POg/.IEckj/9Tebboe0L1HXlZSZi8aaYg89gamCLfgSqabRzO
-    piano_player:
-      name: piano player
-      password: $2y$10$9RUGP/71AAJ0qtGn5H8rnOHE99ChfH2SEwYlcO8xoGES3OVU2nW4K
-    rancore996:
-      name: Rancore996
-      password: $2y$10$KYxjs3PxhOC9nfRK6.n3.eoNXnwPnclQ.xUuRkEqMcsZxbFBeK3HG
+      password: $2y$10$IvH5hPK4drS4qkIiKD5hNOXpFvMR1LW8sro6e6XlmbXCvc9vRmekm
 
 cookie:
   expiry_days: 3650
