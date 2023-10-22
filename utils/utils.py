@@ -1,6 +1,5 @@
 import math
 from dataclasses import dataclass
-from enum import IntEnum
 from itertools import groupby
 from statistics import mode
 from typing import Literal, Optional
@@ -14,15 +13,7 @@ from generated.prisma.models import (
     Period,
     PlayerStats,
 )
-from utils.constants import CS_TIME_NECESSARY, DEFWIN_SCORE, GAME_TIME
-
-
-class GamePosition(IntEnum):
-    unknown = 0
-    GK = 1
-    DM = 2
-    AM = 3
-    ST = 4
+from utils.constants import CS_TIME_NECESSARY, DEFWIN_SCORE, GAME_TIME, GamePosition
 
 
 def hide_streamlit_elements() -> st._DeltaGenerator:
