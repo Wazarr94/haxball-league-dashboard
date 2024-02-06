@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-LEAGUE_TITLE = "S2"
+LEAGUE_TITLE = "S3"
 LEAGUE_NAME = "FUTLIFE"
 TEAM_SIZE = 3
 LEAGUE_TEAM_SIZE_MIN = 5
